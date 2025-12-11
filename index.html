@@ -59,17 +59,17 @@
 
     <h2 class="section-title">Difficulté</h2>
     <div class="difficulty-buttons">
-      <button onclick="setDifficulty(1)">⭐ Niveau 1</button>
-      <button onclick="setDifficulty(2)">⭐⭐ Niveau 2</button>
-      <button onclick="setDifficulty(3)">⭐⭐⭐ Niveau 3</button>
+      <button onclick="setDifficulty(1, this)">⭐ Niveau 1</button>
+      <button onclick="setDifficulty(2, this)">⭐⭐ Niveau 2</button>
+      <button onclick="setDifficulty(3, this)">⭐⭐⭐ Niveau 3</button>
     </div>
 
     <h2 class="section-title">Nombre de questions</h2>
     <div class="question-buttons">
-      <button onclick="selectQuestionCount(5)">5</button>
-      <button onclick="selectQuestionCount(10)">10</button>
-      <button onclick="selectQuestionCount(15)">15</button>
-      <button onclick="selectQuestionCount(20)">20</button>
+      <button onclick="selectQuestionCount(5, this)">5</button>
+      <button onclick="selectQuestionCount(10, this)">10</button>
+      <button onclick="selectQuestionCount(15, this)">15</button>
+      <button onclick="selectQuestionCount(20, this)">20</button>
     </div>
 
     <button class="danger-btn" onclick="backHome()">⬅ Retour</button>
@@ -122,9 +122,51 @@
     <div id="badge-row" class="badge-row"></div>
     <div id="summary"></div>
     <div id="mistake-list"></div>
+
+    <div id="qr-section" class="qr-section hidden">
+      <h2>QR à montrer à ton professeur</h2>
+      <p class="subtitle small">Il contient ton prénom, ta classe et tes résultats sur chaque exercice réalisé.</p>
+      <div id="qrBox"></div>
+      <button id="download-qr-btn" class="secondary-btn" type="button">📥 Télécharger le QR</button>
+    </div>
+
     <button class="primary-btn" onclick="restart()">🔁 Rejouer</button>
   </div>
 
+  <!-- Modale identité élève -->
+  <div id="identity-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h2>Bienvenue 👋</h2>
+      <p class="subtitle small">Indique ton prénom et ta classe pour que le QR code soit lisible par ton professeur.</p>
+      <div class="modal-field">
+        <label for="student-firstname">Prénom</label>
+        <input id="student-firstname" type="text" autocomplete="given-name" />
+      </div>
+      <div class="modal-field">
+        <label for="student-class">Classe (ex : 4B, 3C)</label>
+        <input id="student-class" type="text" autocomplete="off" />
+      </div>
+      <button class="primary-btn" type="button" onclick="saveIdentity()">Valider</button>
+    </div>
+  </div>
+
+  <!-- Modale fin de séance -->
+  <div id="session-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+      <h2>Fin de l'exercice</h2>
+      <p class="subtitle small">
+        Veux-tu continuer avec un autre mode / un autre nombre de questions, ou terminer et générer le QR code pour ton professeur ?
+      </p>
+      <div class="modal-actions">
+        <button id="session-continue-btn" class="secondary-btn" type="button">Continuer un autre exercice</button>
+        <button id="session-qr-btn" class="primary-btn" type="button">Terminer et générer le QR</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

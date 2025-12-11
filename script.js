@@ -1,4 +1,3 @@
-
 let VERBS = [];
 let verbsLoaded = false;
 
@@ -25,6 +24,10 @@ let duelScores = {1: 0, 2: 0};
 // examen timer
 let examTimer = null;
 let examTimeLeft = 0;
+
+// identité & suivi de séance
+let studentIdentity = { firstName: "", classLabel: "" };
+let sessionResults = [];
 
 // DOM refs
 const home = document.getElementById("home");
@@ -57,6 +60,20 @@ const summaryEl = document.getElementById("summary");
 const audioVerbBtn = document.getElementById("audio-verb-btn");
 const themeToggleBtn = document.getElementById("theme-toggle");
 
+// QR section
+const qrSectionEl = document.getElementById("qr-section");
+const qrBoxEl = document.getElementById("qrBox");
+const downloadQrBtn = document.getElementById("download-qr-btn");
+
+// Modals
+const identityModal = document.getElementById("identity-modal");
+const identityFirstNameInput = document.getElementById("student-firstname");
+const identityClassInput = document.getElementById("student-class");
+
+const sessionModal = document.getElementById("session-modal");
+const sessionContinueBtn = document.getElementById("session-continue-btn");
+const sessionQrBtn = document.getElementById("session-qr-btn");
+
 // THEME HANDLING
 (function initTheme() {
   const stored = localStorage.getItem("ivt-theme");
@@ -64,6 +81,19 @@ const themeToggleBtn = document.getElementById("theme-toggle");
     applyTheme(stored);
   } else {
     applyTheme("dark");
+  }
+
+  // identité éventuelle en cache
+  const storedIdentity = localStorage.getItem("ivt-student");
+  if (storedIdentity) {
+    try {
+      const obj = JSON.parse(storedIdentity);
+      if (obj && obj.firstName && obj.classLabel) {
+        studentIdentity = obj;
+      }
+    } catch (e) {
+      console.warn("Cannot parse stored identity", e);
+    }
   }
 })();
 
@@ -79,7 +109,7 @@ function applyTheme(theme) {
   localStorage.setItem("ivt-theme", theme);
 }
 
-// AUDIO
+// AUDIO : prononciation simple du verbe en anglais
 
 audioVerbBtn.addEventListener("click", () => {
   if (!currentVerb) return;
@@ -104,6 +134,8 @@ function goToMenu() {
   result.classList.add("hidden");
   game.classList.add("hidden");
   menu.classList.remove("hidden");
+
+  ensureIdentity();
 }
 
 function backHome() {
@@ -115,8 +147,12 @@ function backHome() {
   clearModeSelection();
 }
 
-function setDifficulty(n) {
+function setDifficulty(n, el) {
   difficultyLevel = n;
+  clearDifficultySelection();
+  if (el) {
+    el.classList.add("selected");
+  }
 }
 
 function selectMode(mode, el) {
@@ -129,12 +165,24 @@ function clearModeSelection() {
   document.querySelectorAll(".mode-card").forEach(c => c.classList.remove("selected"));
 }
 
-function selectQuestionCount(n) {
+function clearDifficultySelection() {
+  document.querySelectorAll(".difficulty-buttons button").forEach(b => b.classList.remove("selected"));
+}
+
+function clearQuestionSelection() {
+  document.querySelectorAll(".question-buttons button").forEach(b => b.classList.remove("selected"));
+}
+
+function selectQuestionCount(n, el) {
   if (!gameMode) {
     alert("Choisis un mode d'abord.");
     return;
   }
   totalQuestions = n;
+  clearQuestionSelection();
+  if (el) {
+    el.classList.add("selected");
+  }
   startGame();
 }
 
@@ -248,6 +296,7 @@ function nextQuestion() {
   if (gameMode === "learning" && learningQueue.length > 0) {
     v = learningQueue.shift();
   } else {
+    // tirage aléatoire simple : avec 180 verbes et des parties courtes, le risque de doublon est très faible
     v = VERBS[Math.floor(Math.random() * VERBS.length)];
   }
   currentVerb = v;
@@ -740,7 +789,7 @@ function updateTimerDisplay() {
   timerEl.textContent = `⏱ Temps restant : ${m}m ${s < 10 ? "0" + s : s}s`;
 }
 
-/* Fin de partie & bilan */
+/* Fin de partie & bilan + enregistrement de l'exercice */
 
 function endGame(fromTimer = false) {
   stopExamTimer();
@@ -759,6 +808,17 @@ function endGame(fromTimer = false) {
     scoreText.textContent = `Tu as obtenu ${score}/${total}, soit ${note}/20.`;
   } else {
     scoreText.textContent = `Tu as obtenu ${score} bonne(s) réponse(s) sur ${total}.`;
+  }
+
+  // Enregistrer cet exercice dans l'historique de la séance (hors duel)
+  if (gameMode !== "duel") {
+    const label = getExerciseLabel(gameMode);
+    sessionResults.push({
+      mode: gameMode,
+      label,
+      score,
+      total
+    });
   }
 
   // Badges
@@ -822,9 +882,169 @@ function endGame(fromTimer = false) {
       `<p>• ${v.inf} → <span class="form-past">${v.past}</span> / <span class="form-part">${v.part}</span> (${v.fr || ""})</p>`
     ).join("");
   }
+
+  // à la fin d'un exercice, proposer de continuer ou de générer le QR
+  openSessionModal();
 }
 
 function restart() {
   result.classList.add("hidden");
+  qrSectionEl.classList.add("hidden");
   goToMenu();
+}
+
+/* Etiquette lisible pour le nom d'exercice dans le QR */
+
+function getExerciseLabel(mode) {
+  switch (mode) {
+    case "classic": return "Classic / Classique";
+    case "qcm": return "QCM (2 étapes)";
+    case "learning": return "Learning / Apprentissage";
+    case "exam": return "Exam / Examen";
+    case "puzzle": return "Puzzle";
+    case "flashcards": return "Flashcards";
+    default: return mode || "Inconnu";
+  }
+}
+
+/* Gestion identité élève */
+
+function ensureIdentity() {
+  if (studentIdentity.firstName && studentIdentity.classLabel) {
+    return;
+  }
+  // vider les champs puis afficher la modale
+  identityFirstNameInput.value = "";
+  identityClassInput.value = "";
+  identityModal.classList.remove("hidden");
+  identityFirstNameInput.focus();
+}
+
+function saveIdentity() {
+  const fn = (identityFirstNameInput.value || "").trim();
+  const cl = (identityClassInput.value || "").trim();
+
+  if (!fn || !cl) {
+    alert("Merci de renseigner ton prénom et ta classe.");
+    return;
+  }
+
+  studentIdentity.firstName = fn;
+  studentIdentity.classLabel = cl;
+  localStorage.setItem("ivt-student", JSON.stringify(studentIdentity));
+  identityModal.classList.add("hidden");
+
+  // nouvelle identité -> on repart sur une nouvelle séance
+  sessionResults = [];
+  if (qrBoxEl) qrBoxEl.innerHTML = "";
+  if (qrSectionEl) qrSectionEl.classList.add("hidden");
+}
+
+/* Modale de fin de séance */
+
+function openSessionModal() {
+  if (!sessionModal) return;
+  sessionModal.classList.remove("hidden");
+}
+
+if (sessionContinueBtn) {
+  sessionContinueBtn.addEventListener("click", () => {
+    sessionModal.classList.add("hidden");
+    // l'élève peut soit cliquer sur Rejouer, soit revenir au menu
+    // ici on choisit simplement de laisser l'écran de résultat visible
+  });
+}
+
+if (sessionQrBtn) {
+  sessionQrBtn.addEventListener("click", () => {
+    sessionModal.classList.add("hidden");
+    buildSessionQR();
+  });
+}
+
+/* Construction du QR global de séance */
+
+function normaliseClassLabel(raw) {
+  if (!raw) return "";
+  let s = String(raw).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  s = s.replace(/\s+/g, "");
+  // on cherche un motif : nombre suivi d'une lettre
+  const match = s.match(/(\d+)([A-Z])/);
+  if (match) {
+    return match[1] + match[2];
+  }
+  return s;
+}
+
+function buildSessionQR() {
+  if (!studentIdentity.firstName || !studentIdentity.classLabel) {
+    ensureIdentity();
+    return;
+  }
+
+  if (!sessionResults.length) {
+    alert("Aucun exercice réalisé pour cette séance.");
+    return;
+  }
+
+  const payload = {
+    prenom: studentIdentity.firstName.toUpperCase(),
+    classe: normaliseClassLabel(studentIdentity.classLabel),
+    exercices: sessionResults.map(r => ({
+      exo: r.label,
+      resultat: `${r.score}/${r.total}`
+    }))
+  };
+
+  const json = JSON.stringify(payload);
+
+  if (!qrBoxEl) return;
+
+  qrBoxEl.innerHTML = "";
+  qrSectionEl.classList.remove("hidden");
+
+  if (typeof QRCode === "undefined" || !QRCode.toCanvas) {
+    // fallback texte si la lib n'est pas disponible
+    const pre = document.createElement("pre");
+    pre.textContent = json;
+    qrBoxEl.appendChild(pre);
+    return;
+  }
+
+  const canvas = document.createElement("canvas");
+  QRCode.toCanvas(
+    canvas,
+    json,
+    { width: 256, margin: 2 },
+    function (err) {
+      if (err) {
+        console.error(err);
+        const pre = document.createElement("pre");
+        pre.textContent = json;
+        qrBoxEl.appendChild(pre);
+        return;
+      }
+      qrBoxEl.appendChild(canvas);
+    }
+  );
+}
+
+/* Téléchargement du QR */
+
+if (downloadQrBtn) {
+  downloadQrBtn.addEventListener("click", () => {
+    const canvas = qrBoxEl ? qrBoxEl.querySelector("canvas") : null;
+    if (!canvas) {
+      alert("Le QR n'est pas encore généré.");
+      return;
+    }
+    const dataUrl = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    const namePart = studentIdentity.firstName ? studentIdentity.firstName.toUpperCase() : "ELEVES";
+    a.download = `IrregularVerbs_QR_${namePart}.png`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  });
 }
