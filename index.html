@@ -2,885 +2,129 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8" />
-  <title>Irregular Verbs Trainer</title>
+  <title>Irregular Verbs Trainer PRO</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: "Arial", sans-serif;
-      background: linear-gradient(135deg, #3b82f6, #9333ea);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: white;
-    }
-    .hidden { display: none; }
-    .container {
-      width: 92%;
-      max-width: 520px;
-      background: rgba(255, 255, 255, 0.12);
-      border-radius: 22px;
-      padding: 28px;
-      box-shadow: 0 8px 22px rgba(0,0,0,0.25);
-      backdrop-filter: blur(14px);
-      animation: fadeIn 0.4s ease-out;
-      text-align: center;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.95); }
-      to   { opacity: 1; transform: scale(1); }
-    }
-    h1 { margin: 0 0 6px 0; }
-    .mode-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-      gap: 15px;
-      margin-top: 20px;
-    }
-    .mode-card {
-      background: rgba(255,255,255,0.20);
-      padding: 16px;
-      border-radius: 18px;
-      text-align: center;
-      cursor: pointer;
-      transition: 0.25s;
-      border: 1px solid rgba(255,255,255,0.30);
-    }
-    .mode-card:hover {
-      background: rgba(255,255,255,0.35);
-      transform: translateY(-4px);
-    }
-    .mode-icon { font-size: 1.8rem; }
-    .mode-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      margin-top: 4px;
-    }
-    .mode-desc {
-      opacity: 0.85;
-      font-size: 0.8rem;
-      margin-top: 4px;
-    }
-    .difficulty-buttons button,
-    .question-buttons button {
-      padding: 9px 16px;
-      border-radius: 14px;
-      margin: 5px;
-      font-weight: 600;
-      background: rgba(255,255,255,0.22);
-      border: 1px solid rgba(255,255,255,0.32);
-      color: white;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    .difficulty-buttons button:hover,
-    .question-buttons button:hover {
-      transform: scale(1.07);
-      background: rgba(255,255,255,0.35);
-    }
-    .primary-btn {
-      padding: 12px 22px;
-      border-radius: 16px;
-      border: none;
-      cursor: pointer;
-      background:#10b981;
-      color:white;
-      font-size:1.05rem;
-      font-weight:600;
-      transition:0.2s;
-    }
-    .primary-btn:hover { transform:scale(1.05); }
-    .danger-btn {
-      padding:10px 18px;
-      border-radius:14px;
-      border:none;
-      background:#ef4444;
-      color:white;
-      cursor:pointer;
-      font-weight:600;
-    }
-    .answer-btn {
-      padding: 10px 18px;
-      margin: 6px 3px;
-      border-radius: 14px;
-      background:#111827;
-      color:white;
-      border:1px solid rgba(148,163,184,0.7);
-      cursor:pointer;
-      transition:0.2s;
-      display:inline-block;
-      min-width:140px;
-    }
-    .answer-btn:hover {
-      transform:scale(1.05);
-      background:#1f2937;
-    }
-    #feedback {
-      margin-top: 14px;
-      font-size:1.05rem;
-      min-height: 32px;
-      font-weight: bold;
-    }
-    #translation {
-      opacity:0.85;
-      font-size:0.9rem;
-      min-height:1.2rem;
-      margin-top:4px;
-    }
-    #word {
-      font-size:2rem;
-      margin-top:8px;
-      font-weight:700;
-    }
-    #question-counter, #timer, #duel-info {
-      font-size:0.9rem;
-      opacity:0.85;
-      margin-top:4px;
-    }
-    .form-past { color:#fb923c; font-weight:bold; }
-    .form-part { color:#22c55e; font-weight:bold; }
-    #mistake-list {
-      text-align:left;
-      margin-top:16px;
-      max-height:220px;
-      overflow-y:auto;
-      font-size:0.9rem;
-    }
-    .badge {
-      display:inline-block;
-      padding:6px 10px;
-      border-radius:999px;
-      background:rgba(34,197,94,0.2);
-      border:1px solid rgba(34,197,94,0.7);
-      margin:3px;
-      font-size:0.8rem;
-    }
-    /* Puzzle */
-    .puzzle-zone {
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      margin-top:16px;
-      text-align:left;
-    }
-    .puzzle-row {
-      display:flex;
-      align-items:center;
-      gap:6px;
-    }
-    .slot-label {
-      width:90px;
-      font-size:0.85rem;
-      opacity:0.9;
-    }
-    .drop-slot {
-      flex:1;
-      min-height:36px;
-      border-radius:10px;
-      border:1px dashed rgba(255,255,255,0.6);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:0.9rem;
-      padding:4px;
-    }
-    .drag-bank {
-      margin-top:12px;
-      display:flex;
-      justify-content:center;
-      gap:8px;
-      flex-wrap:wrap;
-    }
-    .drag-item {
-      padding:6px 10px;
-      background:rgba(15,23,42,0.9);
-      border-radius:999px;
-      border:1px solid rgba(148,163,184,0.7);
-      cursor:grab;
-      font-size:0.9rem;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
-<body>
+<body class="theme-dark">
+  <button id="theme-toggle" class="theme-toggle" aria-label="Basculer le thème">☀️</button>
 
-<div id="home" class="container">
-  <h1>Irregular Verbs Trainer</h1>
-  <p style="opacity:0.9;">Maîtrise les verbes irréguliers anglais avec différents modes de jeu.</p>
-  <button class="primary-btn" onclick="goToMenu()">🚀 Commencer</button>
-</div>
-
-<div id="menu" class="container hidden">
-  <h1>Choisis ton mode</h1>
-  <p style="opacity:0.85;">Puis sélectionne la difficulté et le nombre de questions.</p>
-
-  <div class="mode-grid">
-    <div class="mode-card" onclick="selectMode('classic')">
-      <div class="mode-icon">📘</div>
-      <div class="mode-title">Classique</div>
-      <div class="mode-desc">Choisis past + participle parmi 3 options.</div>
-    </div>
-    <div class="mode-card" onclick="selectMode('qcm')">
-      <div class="mode-icon">📝</div>
-      <div class="mode-title">QCM</div>
-      <div class="mode-desc">2 étapes : past puis participle.</div>
-    </div>
-    <div class="mode-card" onclick="selectMode('learning')">
-      <div class="mode-icon">🔁</div>
-      <div class="mode-title">Apprentissage</div>
-      <div class="mode-desc">Repose les verbes ratés jusqu’à maîtrise.</div>
-    </div>
-    <div class="mode-card" onclick="selectMode('exam')">
-      <div class="mode-icon">⏱️</div>
-      <div class="mode-title">Examen</div>
-      <div class="mode-desc">Chrono + note finale.</div>
-    </div>
-    <div class="mode-card" onclick="selectMode('puzzle')">
-      <div class="mode-icon">🧩</div>
-      <div class="mode-title">Puzzle</div>
-      <div class="mode-desc">Place chaque forme au bon endroit.</div>
-    </div>
-    <div class="mode-card" onclick="selectMode('duel')">
-      <div class="mode-icon">⚔️</div>
-      <div class="mode-title">Duel</div>
-      <div class="mode-desc">2 joueurs, meilleur score gagne.</div>
-    </div>
+  <div id="home" class="container">
+    <h1>Irregular Verbs Trainer</h1>
+    <p class="subtitle">Maîtrise les verbes irréguliers anglais avec différents modes de jeu.</p>
+    <button class="primary-btn large" onclick="goToMenu()">🚀 Commencer</button>
   </div>
 
-  <h2 style="margin-top:20px;">Difficulté</h2>
-  <div class="difficulty-buttons">
-    <button onclick="setDifficulty(1)">⭐ Facile</button>
-    <button onclick="setDifficulty(2)">⭐⭐ Moyen</button>
-    <button onclick="setDifficulty(3)">⭐⭐⭐ Difficile</button>
+  <div id="menu" class="container hidden">
+    <h1>Choisis ton mode</h1>
+    <p class="subtitle">Puis sélectionne la difficulté et le nombre de questions.</p>
+
+    <div class="mode-grid">
+      <div class="mode-card" onclick="selectMode('classic', this)">
+        <div class="mode-icon">📘</div>
+        <div class="mode-title">Classique</div>
+        <div class="mode-desc">Choisis past + participle parmi 3 options.</div>
+      </div>
+      <div class="mode-card" onclick="selectMode('qcm', this)">
+        <div class="mode-icon">📝</div>
+        <div class="mode-title">QCM</div>
+        <div class="mode-desc">2 étapes : past puis participle.</div>
+      </div>
+      <div class="mode-card" onclick="selectMode('learning', this)">
+        <div class="mode-icon">🔁</div>
+        <div class="mode-title">Apprentissage</div>
+        <div class="mode-desc">Repose les verbes ratés jusqu’à maîtrise.</div>
+      </div>
+      <div class="mode-card" onclick="selectMode('exam', this)">
+        <div class="mode-icon">⏱️</div>
+        <div class="mode-title">Examen</div>
+        <div class="mode-desc">Chrono + note finale.</div>
+      </div>
+      <div class="mode-card" onclick="selectMode('puzzle', this)">
+        <div class="mode-icon">🧩</div>
+        <div class="mode-title">Puzzle</div>
+        <div class="mode-desc">Place chaque forme au bon endroit.</div>
+      </div>
+      <div class="mode-card" onclick="selectMode('duel', this)">
+        <div class="mode-icon">⚔️</div>
+        <div class="mode-title">Duel</div>
+        <div class="mode-desc">2 joueurs, meilleur score gagne.</div>
+      </div>
+      <div class="mode-card" onclick="selectMode('flashcards', this)">
+        <div class="mode-icon">🎴</div>
+        <div class="mode-title">Flashcards</div>
+        <div class="mode-desc">Retourne la carte, auto-évalue-toi.</div>
+      </div>
+    </div>
+
+    <h2 class="section-title">Difficulté</h2>
+    <div class="difficulty-buttons">
+      <button onclick="setDifficulty(1)">⭐ Niveau 1</button>
+      <button onclick="setDifficulty(2)">⭐⭐ Niveau 2</button>
+      <button onclick="setDifficulty(3)">⭐⭐⭐ Niveau 3</button>
+    </div>
+
+    <h2 class="section-title">Nombre de questions</h2>
+    <div class="question-buttons">
+      <button onclick="selectQuestionCount(5)">5</button>
+      <button onclick="selectQuestionCount(10)">10</button>
+      <button onclick="selectQuestionCount(15)">15</button>
+      <button onclick="selectQuestionCount(20)">20</button>
+    </div>
+
+    <button class="danger-btn" onclick="backHome()">⬅ Retour</button>
   </div>
 
-  <h2 style="margin-top:18px;">Nombre de questions</h2>
-  <div class="question-buttons">
-    <button onclick="selectQuestionCount(5)">5</button>
-    <button onclick="selectQuestionCount(10)">10</button>
-    <button onclick="selectQuestionCount(15)">15</button>
-    <button onclick="selectQuestionCount(20)">20</button>
+  <div id="game" class="container hidden">
+    <h1 id="game-title">Mode…</h1>
+    <div class="top-infos">
+      <div id="question-counter"></div>
+      <div id="timer"></div>
+    </div>
+    <div id="duel-players" class="duel-players hidden">
+      <div id="player1-card" class="duel-player-card">
+        <div class="duel-player-name">Joueur 1</div>
+        <div class="duel-player-score" id="player1-score">0</div>
+      </div>
+      <div id="player2-card" class="duel-player-card">
+        <div class="duel-player-name">Joueur 2</div>
+        <div class="duel-player-score" id="player2-score">0</div>
+      </div>
+    </div>
+    <div id="duel-info"></div>
+
+    <div id="word-wrapper">
+      <div id="word">...</div>
+      <div id="audio-controls">
+        <button id="audio-verb-btn" class="icon-btn" type="button">🔊 Prononciation</button>
+      </div>
+    </div>
+
+    <button id="toggle-translation" class="secondary-btn" type="button">
+      📘 Voir la traduction
+    </button>
+    <div id="translation"></div>
+
+    <div id="step-label" class="step-label"></div>
+
+    <div id="btn-group" class="btn-group"></div>
+
+    <div id="puzzle-area"></div>
+
+    <div id="feedback"></div>
+
+    <button id="next" class="primary-btn" onclick="nextQuestion()">Suivant ➜</button>
   </div>
 
-  <button class="danger-btn" style="margin-top:24px;" onclick="backHome()">⬅ Retour</button>
-</div>
-
-<div id="game" class="container hidden">
-  <h1 id="game-title">Mode…</h1>
-  <div id="question-counter"></div>
-  <div id="timer"></div>
-  <div id="duel-info"></div>
-
-  <div id="word">...</div>
-
-  <button id="toggle-translation" class="answer-btn" style="margin-top:10px;" onclick="toggleTranslation()">
-    📘 Voir la traduction
-  </button>
-  <div id="translation"></div>
-
-  <div id="step-label" style="margin-top:8px; font-size:0.9rem; opacity:0.9;"></div>
-
-  <div id="btn-group" style="margin-top:12px;"></div>
-
-  <div id="puzzle-area" style="margin-top:10px;"></div>
-
-  <div id="feedback"></div>
-
-  <button id="next" class="primary-btn" style="margin-top:18px;" onclick="nextQuestion()">Suivant ➜</button>
-</div>
-
-<div id="result" class="container hidden">
-  <h1>Résultat</h1>
-  <h2 id="score-text"></h2>
-  <div id="badge-row" style="margin-top:6px;"></div>
-  <div id="mistake-list"></div>
-  <button class="primary-btn" style="margin-top:18px;" onclick="restart()">🔁 Rejouer</button>
-</div>
-
-<script>
-let VERBS = [];
-let verbsLoaded = false;
-
-// état global
-let gameMode = null;
-let difficultyLevel = 1;
-let totalQuestions = 0;
-let currentIndex = 0;
-let score = 0;
-let mistakes = [];
-let learningQueue = [];
-let currentVerb = null;
-let currentQuestion = null;
-let translationVisible = false;
-
-// duel
-let duelPlayer = 1;
-let duelScores = {1:0, 2:0};
-
-// examen timer
-let examTimer = null;
-let examTimeLeft = 0;
-
-// DOM refs
-const home = document.getElementById("home");
-const menu = document.getElementById("menu");
-const game = document.getElementById("game");
-const result = document.getElementById("result");
-
-const gameTitle = document.getElementById("game-title");
-const questionCtr = document.getElementById("question-counter");
-const timerEl = document.getElementById("timer");
-const duelInfo = document.getElementById("duel-info");
-const wordEl = document.getElementById("word");
-const translationEl = document.getElementById("translation");
-const toggleTransBtn = document.getElementById("toggle-translation");
-const stepLabel = document.getElementById("step-label");
-const btnGroup = document.getElementById("btn-group");
-const puzzleArea = document.getElementById("puzzle-area");
-const feedbackEl = document.getElementById("feedback");
-const nextBtn = document.getElementById("next");
-const scoreText = document.getElementById("score-text");
-const badgeRow = document.getElementById("badge-row");
-const mistakeList = document.getElementById("mistake-list");
-
-function goToMenu() {
-  home.classList.add("hidden");
-  result.classList.add("hidden");
-  game.classList.add("hidden");
-  menu.classList.remove("hidden");
-}
-
-function backHome() {
-  stopExamTimer();
-  menu.classList.add("hidden");
-  game.classList.add("hidden");
-  result.classList.add("hidden");
-  home.classList.remove("hidden");
-}
-
-function setDifficulty(n) {
-  difficultyLevel = n;
-}
-
-function selectMode(mode) {
-  gameMode = mode;
-}
-
-function selectQuestionCount(n) {
-  if (!gameMode) {
-    alert("Choisis un mode d'abord.");
-    return;
-  }
-  totalQuestions = n;
-  startGame();
-}
-
-async function startGame() {
-  if (!verbsLoaded) {
-    await loadVerbs();
-  }
-  score = 0;
-  mistakes = [];
-  learningQueue = [];
-  currentIndex = 0;
-  translationVisible = false;
-  updateTranslationDisplay();
-
-  duelPlayer = 1;
-  duelScores = {1:0, 2:0};
-  duelInfo.textContent = "";
-
-  menu.classList.add("hidden");
-  result.classList.add("hidden");
-  game.classList.remove("hidden");
-
-  gameTitle.textContent = 
-    gameMode === "classic" ? "Mode classique" :
-    gameMode === "qcm" ? "Mode QCM" :
-    gameMode === "learning" ? "Mode apprentissage" :
-    gameMode === "exam" ? "Mode examen" :
-    gameMode === "puzzle" ? "Puzzle" :
-    "Mode duel";
-
-  if (gameMode === "exam") {
-    examTimeLeft = totalQuestions * 20;
-    startExamTimer();
-    toggleTransBtn.style.display = "none";
-  } else {
-    stopExamTimer();
-    timerEl.textContent = "";
-    toggleTransBtn.style.display = "inline-block";
-  }
-
-  if (gameMode === "duel") {
-    duelInfo.textContent = "Joueur 1 commence.";
-  }
-
-  nextQuestion();
-}
-
-async function loadVerbs() {
-  try {
-    const res = await fetch("verbs.json");
-    VERBS = await res.json();
-    verbsLoaded = Array.isArray(VERBS) && VERBS.length > 0;
-  } catch (e) {
-    console.error(e);
-    wordEl.textContent = "Erreur de chargement des verbes.";
-  }
-}
-
-function toggleTranslation() {
-  translationVisible = !translationVisible;
-  updateTranslationDisplay();
-}
-
-function updateTranslationDisplay() {
-  if (translationVisible && currentVerb) {
-    translationEl.textContent = currentVerb.fr || "";
-    toggleTransBtn.textContent = "Masquer la traduction";
-  } else {
-    translationEl.textContent = "";
-    toggleTransBtn.textContent = "📘 Voir la traduction";
-  }
-}
-
-function resetUIForQuestion() {
-  btnGroup.innerHTML = "";
-  puzzleArea.innerHTML = "";
-  feedbackEl.innerHTML = "";
-  nextBtn.style.display = "none";
-  stepLabel.textContent = "";
-  updateTranslationDisplay();
-}
-
-function nextQuestion() {
-  resetUIForQuestion();
-
-  if (gameMode !== "learning" && gameMode !== "puzzle" && gameMode !== "duel") {
-    if (currentIndex >= totalQuestions) {
-      endGame();
-      return;
-    }
-  }
-  if (gameMode === "duel") {
-    if (currentIndex >= totalQuestions) {
-      endGame();
-      return;
-    }
-  }
-  if (gameMode === "puzzle") {
-    if (currentIndex >= totalQuestions) {
-      endGame();
-      return;
-    }
-  }
-
-  currentIndex++;
-  questionCtr.textContent = 
-    `Question ${currentIndex} / ${totalQuestions}`;
-
-  let v;
-  if (gameMode === "learning" && learningQueue.length > 0) {
-    v = learningQueue.shift();
-  } else {
-    v = VERBS[Math.floor(Math.random() * VERBS.length)];
-  }
-  currentVerb = v;
-  wordEl.textContent = v.inf;
-
-  if (gameMode === "classic" || gameMode === "exam" || gameMode === "duel") {
-    loadClassicQuestion();
-  } else if (gameMode === "qcm") {
-    loadQcmQuestion();
-  } else if (gameMode === "learning") {
-    loadLearningQuestion();
-  } else if (gameMode === "puzzle") {
-    loadPuzzleQuestion();
-  }
-}
-
-/* DIFFICULTY ENGINE */
-function shuffle(arr) {
-  return arr.sort(() => Math.random() - 0.5);
-}
-function reverseString(s) {
-  return s.split("").reverse().join("");
-}
-function pickDifferent(list, correct) {
-  const filtered = list.filter(w => w && w !== correct);
-  if (filtered.length === 0) return correct;
-  return filtered[Math.floor(Math.random() * filtered.length)];
-}
-function generateFakePast(v) {
-  const base = v.inf;
-  const variants = [
-    base + "ed",
-    base + "d",
-    v.past.replace(/a/g, "e"),
-    v.past.replace(/e/g, "a"),
-    v.past + "ed",
-    v.part,
-    base + "t",
-    base.substring(0, base.length-1) + "ed",
-    reverseString(v.past)
-  ];
-  return pickDifferent(variants, v.past);
-}
-function generateFakePart(v) {
-  const base = v.inf;
-  const variants = [
-    base + "ed",
-    base + "en",
-    v.part.replace(/e/g, "a"),
-    v.part.replace(/a/g, "e"),
-    v.past + "en",
-    "un" + v.part,
-    v.part + "ed",
-    reverseString(v.part)
-  ];
-  return pickDifferent(variants, v.part);
-}
-function generateOptions(v) {
-  if (difficultyLevel === 1) {
-    let others = VERBS.filter(x => x.inf !== v.inf);
-    others = shuffle(others).slice(0, 2);
-    return shuffle([
-      { past:v.past, part:v.part, correct:true },
-      { past:others[0].past, part:others[0].part, correct:false },
-      { past:others[1].past, part:others[1].part, correct:false }
-    ]);
-  }
-  if (difficultyLevel === 2) {
-    return shuffle([
-      { past:v.past, part:v.part, correct:true },
-      { past:generateFakePast(v), part:generateFakePart(v), correct:false },
-      { past:VERBS[Math.floor(Math.random()*VERBS.length)].past,
-        part:generateFakePart(v), correct:false }
-    ]);
-  }
-  return shuffle([
-    { past:v.past, part:v.part, correct:true },
-    { past:generateFakePast(v), part:generateFakePart(v), correct:false },
-    { past:generateFakePast(v), part:generateFakePart(v), correct:false }
-  ]);
-}
-
-/* Classic / Exam / Duel */
-function loadClassicQuestion() {
-  const v = currentVerb;
-  const options = generateOptions(v);
-  currentQuestion = { verb:v, options };
-
-  stepLabel.textContent = "Choisis la bonne combinaison (past + past participle).";
-
-  options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-past">${opt.past}</span> / <span class="form-part">${opt.part}</span>`;
-    btn.onclick = () => checkClassic(opt);
-    btnGroup.appendChild(btn);
-  });
-}
-
-function checkClassic(opt) {
-  const v = currentQuestion.verb;
-  const correct = opt.correct;
-
-  if (gameMode === "duel") {
-    if (correct) {
-      score++;
-      duelScores[duelPlayer]++;
-      feedbackEl.innerHTML = `<span style="color:#22c55e;">✔ Joueur ${duelPlayer} correct !</span>`;
-    } else {
-      feedbackEl.innerHTML = `❌ Joueur ${duelPlayer} s'est trompé.<br>Bonne réponse : <span class="form-past">${v.past}</span> / <span class="form-part">${v.part}</span>`;
-      mistakes.push(v);
-      learningQueue.push(v);
-    }
-    duelPlayer = duelPlayer === 1 ? 2 : 1;
-    duelInfo.textContent = `Score - Joueur 1 : ${duelScores[1]} | Joueur 2 : ${duelScores[2]} — Au tour du joueur ${duelPlayer}.`;
-  } else {
-    if (correct) {
-      score++;
-      feedbackEl.innerHTML = `<span style="color:#22c55e;">✔ Correct</span>`;
-    } else {
-      feedbackEl.innerHTML = `❌ Faux<br>Tu as choisi : <span class="form-past">${opt.past}</span> / <span class="form-part">${opt.part}</span><br>Bonne réponse : <span class="form-past">${v.past}</span> / <span class="form-part">${v.part}</span>`;
-      mistakes.push(v);
-      learningQueue.push(v);
-    }
-  }
-  nextBtn.style.display = "inline-block";
-}
-
-/* QCM Mode */
-function loadQcmQuestion() {
-  const v = currentVerb;
-  currentQuestion = {
-    verb:v,
-    step:"past",
-    chosenPast:null,
-    pastCorrect:false
-  };
-  stepLabel.textContent = "Étape 1 : choisis le prétérit (past).";
-  btnGroup.innerHTML = "";
-
-  const pasts = [];
-  pasts.push(v.past);
-  while (pasts.length < 3) {
-    const r = VERBS[Math.floor(Math.random()*VERBS.length)].past;
-    if (!pasts.includes(r)) pasts.push(r);
-  }
-  shuffle(pasts).forEach(p => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-past">${p}</span>`;
-    btn.onclick = () => checkQcmPast(p);
-    btnGroup.appendChild(btn);
-  });
-}
-
-function checkQcmPast(p) {
-  const q = currentQuestion;
-  q.chosenPast = p;
-  q.pastCorrect = (p === q.verb.past);
-
-  stepLabel.textContent = "Étape 2 : choisis le participe passé.";
-  btnGroup.innerHTML = "";
-
-  const parts = [];
-  parts.push(q.verb.part);
-  while (parts.length < 3) {
-    const r = VERBS[Math.floor(Math.random()*VERBS.length)].part;
-    if (!parts.includes(r)) parts.push(r);
-  }
-  shuffle(parts).forEach(pp => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-part">${pp}</span>`;
-    btn.onclick = () => checkQcmPart(pp);
-    btnGroup.appendChild(btn);
-  });
-}
-
-function checkQcmPart(pp) {
-  const q = currentQuestion;
-  const correctPart = (pp === q.verb.part);
-  const allCorrect = q.pastCorrect && correctPart;
-
-  if (allCorrect) {
-    score++;
-    feedbackEl.innerHTML = `<span style="color:#22c55e;">✔ Correct</span>`;
-  } else {
-    feedbackEl.innerHTML = `❌ Faux<br>Tu as choisi : <span class="form-past">${q.chosenPast}</span> / <span class="form-part">${pp}</span><br>Bonne réponse : <span class="form-past">${q.verb.past}</span> / <span class="form-part">${q.verb.part}</span>`;
-    mistakes.push(q.verb);
-    learningQueue.push(q.verb);
-  }
-  nextBtn.style.display = "inline-block";
-}
-
-/* Learning mode */
-function loadLearningQuestion() {
-  const v = currentVerb;
-  const options = generateOptions(v);
-  currentQuestion = { verb:v, options };
-
-  stepLabel.textContent = "Mode apprentissage : revois ce verbe.";
-  options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-past">${opt.past}</span> / <span class="form-part">${opt.part}</span>`;
-    btn.onclick = () => checkLearning(opt);
-    btnGroup.appendChild(btn);
-  });
-}
-
-function checkLearning(opt) {
-  const v = currentQuestion.verb;
-  if (opt.correct) {
-    feedbackEl.innerHTML = `<span style="color:#22c55e;">✔ Correct</span>`;
-  } else {
-    feedbackEl.innerHTML = `❌ Faux<br>Bonne réponse : <span class="form-past">${v.past}</span> / <span class="form-part">${v.part}</span>`;
-    learningQueue.push(v);
-  }
-  nextBtn.style.display = "inline-block";
-}
-
-/* Puzzle Mode */
-function loadPuzzleQuestion() {
-  const v = currentVerb;
-  stepLabel.textContent = "Glisse chaque forme dans la bonne case.";
-
-  const forms = shuffle([v.inf, v.past, v.part]);
-  puzzleArea.innerHTML = "";
-
-  const zone = document.createElement("div");
-  zone.className = "puzzle-zone";
-
-  const rows = [
-    {label:"Infinitif", key:"inf"},
-    {label:"Prétérit", key:"past"},
-    {label:"Participe", key:"part"}
-  ];
-
-  rows.forEach(r => {
-    const row = document.createElement("div");
-    row.className = "puzzle-row";
-    const lab = document.createElement("div");
-    lab.className = "slot-label";
-    lab.textContent = r.label;
-    const slot = document.createElement("div");
-    slot.className = "drop-slot";
-    slot.dataset.target = r.key;
-    slot.ondragover = ev => ev.preventDefault();
-    slot.ondrop = ev => {
-      ev.preventDefault();
-      const data = ev.dataTransfer.getData("text/plain");
-      slot.textContent = data;
-      slot.dataset.value = data;
-    };
-    row.appendChild(lab);
-    row.appendChild(slot);
-    zone.appendChild(row);
-  });
-
-  const bank = document.createElement("div");
-  bank.className = "drag-bank";
-  forms.forEach(f => {
-    const item = document.createElement("div");
-    item.className = "drag-item";
-    item.draggable = true;
-    item.textContent = f;
-    item.ondragstart = ev => {
-      ev.dataTransfer.setData("text/plain", f);
-    };
-    bank.appendChild(item);
-  });
-
-  puzzleArea.appendChild(zone);
-  puzzleArea.appendChild(bank);
-
-  const btn = document.createElement("button");
-  btn.className = "primary-btn";
-  btn.style.marginTop = "12px";
-  btn.textContent = "Vérifier";
-  btn.onclick = checkPuzzle;
-  puzzleArea.appendChild(btn);
-}
-
-function checkPuzzle() {
-  const slots = puzzleArea.querySelectorAll(".drop-slot");
-  let ok = true;
-  let wrongDetails = [];
-
-  slots.forEach(slot => {
-    const target = slot.dataset.target;
-    const value = slot.dataset.value;
-    const correctValue = currentVerb[target];
-    if (!value || value !== correctValue) {
-      ok = false;
-      wrongDetails.push(`${target.toUpperCase()} → ${correctValue}`);
-    }
-  });
-
-  if (ok) {
-    score++;
-    feedbackEl.innerHTML = `<span style="color:#22c55e;">✔ Tout est correct !</span>`;
-  } else {
-    feedbackEl.innerHTML = `❌ Il y a des erreurs.<br>Bonne réponse : ${currentVerb.inf} / <span class="form-past">${currentVerb.past}</span> / <span class="form-part">${currentVerb.part}</span>`;
-    mistakes.push(currentVerb);
-    learningQueue.push(currentVerb);
-  }
-  nextBtn.style.display = "inline-block";
-}
-
-/* Exam timer */
-function startExamTimer() {
-  stopExamTimer();
-  updateTimerDisplay();
-  examTimer = setInterval(() => {
-    examTimeLeft--;
-    if (examTimeLeft <= 0) {
-      examTimeLeft = 0;
-      updateTimerDisplay();
-      stopExamTimer();
-      endGame(true);
-    } else {
-      updateTimerDisplay();
-    }
-  }, 1000);
-}
-
-function stopExamTimer() {
-  if (examTimer) {
-    clearInterval(examTimer);
-    examTimer = null;
-  }
-}
-
-function updateTimerDisplay() {
-  const m = Math.floor(examTimeLeft / 60);
-  const s = examTimeLeft % 60;
-  timerEl.textContent = `⏱ Temps restant : ${m}m ${s < 10 ? "0"+s : s}s`;
-}
-
-/* End & Badges */
-function endGame(fromTimer=false) {
-  stopExamTimer();
-  game.classList.add("hidden");
-  result.classList.remove("hidden");
-
-  let total = totalQuestions;
-  if (gameMode === "learning") total = currentIndex;
-  if (gameMode === "puzzle") total = currentIndex;
-  if (gameMode === "duel") total = totalQuestions;
-
-  if (gameMode === "duel") {
-    scoreText.textContent = `Duel terminé — Joueur 1 : ${duelScores[1]} | Joueur 2 : ${duelScores[2]}`;
-  } else if (gameMode === "exam") {
-    const note = Math.round((score / total) * 20);
-    scoreText.textContent = `Tu as obtenu ${score}/${total}, soit ${note}/20.`;
-  } else {
-    scoreText.textContent = `Tu as obtenu ${score} bonne(s) réponse(s) sur ${total}.`;
-  }
-
-  badgeRow.innerHTML = "";
-  const badges = [];
-
-  const ratio = total > 0 ? score / total : 0;
-  if (ratio === 1) badges.push("🌟 Zéro faute !");
-  else if (ratio >= 0.8) badges.push("🏅 Très bon niveau");
-  else if (ratio >= 0.5) badges.push("👍 Bon début, continue !");
-
-  if (gameMode === "exam" && fromTimer) badges.push("⏱ Fin d'examen par temps écoulé");
-  if (gameMode === "puzzle" && ratio >= 0.8) badges.push("🧩 Maître du puzzle");
-  if (gameMode === "duel") {
-    if (duelScores[1] > duelScores[2]) badges.push("👑 Joueur 1 vainqueur");
-    else if (duelScores[2] > duelScores[1]) badges.push("👑 Joueur 2 vainqueur");
-    else badges.push("🤝 Match nul");
-  }
-
-  badges.forEach(b => {
-    const span = document.createElement("span");
-    span.className = "badge";
-    span.textContent = b;
-    badgeRow.appendChild(span);
-  });
-
-  if (mistakes.length === 0) {
-    mistakeList.innerHTML = "<p>Aucune erreur 🎉</p>";
-  } else {
-    mistakeList.innerHTML = mistakes.map(v => 
-      `<p>• ${v.inf} → <span class="form-past">${v.past}</span> / <span class="form-part">${v.part}</span> (${v.fr||""})</p>`
-    ).join("");
-  }
-}
-
-function restart() {
-  result.classList.add("hidden");
-  goToMenu();
-}
-</script>
-
+  <div id="result" class="container hidden">
+    <h1>Résultat</h1>
+    <h2 id="score-text"></h2>
+    <div id="badge-row" class="badge-row"></div>
+    <div id="summary"></div>
+    <div id="mistake-list"></div>
+    <button class="primary-btn" onclick="restart()">🔁 Rejouer</button>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>

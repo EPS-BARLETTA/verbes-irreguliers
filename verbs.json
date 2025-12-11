@@ -6,6 +6,12 @@
     "fr": "être"
   },
   {
+    "inf": "become",
+    "past": "became",
+    "part": "become",
+    "fr": "devenir"
+  },
+  {
     "inf": "begin",
     "past": "began",
     "part": "begun",
@@ -22,101 +28,5 @@
     "past": "brought",
     "part": "brought",
     "fr": "apporter"
-  },
-  {
-    "inf": "choose",
-    "past": "chose",
-    "part": "chosen",
-    "fr": "choisir"
-  },
-  {
-    "inf": "come",
-    "past": "came",
-    "part": "come",
-    "fr": "venir"
-  },
-  {
-    "inf": "do",
-    "past": "did",
-    "part": "done",
-    "fr": "faire"
-  },
-  {
-    "inf": "drink",
-    "past": "drank",
-    "part": "drunk",
-    "fr": "boire"
-  },
-  {
-    "inf": "drive",
-    "past": "drove",
-    "part": "driven",
-    "fr": "conduire"
-  },
-  {
-    "inf": "eat",
-    "past": "ate",
-    "part": "eaten",
-    "fr": "manger"
-  },
-  {
-    "inf": "fall",
-    "past": "fell",
-    "part": "fallen",
-    "fr": "tomber"
-  },
-  {
-    "inf": "find",
-    "past": "found",
-    "part": "found",
-    "fr": "trouver"
-  },
-  {
-    "inf": "get",
-    "past": "got",
-    "part": "got/gotten",
-    "fr": "obtenir"
-  },
-  {
-    "inf": "give",
-    "past": "gave",
-    "part": "given",
-    "fr": "donner"
-  },
-  {
-    "inf": "go",
-    "past": "went",
-    "part": "gone",
-    "fr": "aller"
-  },
-  {
-    "inf": "have",
-    "past": "had",
-    "part": "had",
-    "fr": "avoir"
-  },
-  {
-    "inf": "know",
-    "past": "knew",
-    "part": "known",
-    "fr": "savoir / connaître"
-  },
-  {
-    "inf": "make",
-    "past": "made",
-    "part": "made",
-    "fr": "fabriquer / faire"
-  },
-  {
-    "inf": "read",
-    "past": "read",
-    "part": "read",
-    "fr": "lire"
-  },
-  {
-    "inf": "see",
-    "past": "saw",
-    "part": "seen",
-    "fr": "voir"
   }
 ]
