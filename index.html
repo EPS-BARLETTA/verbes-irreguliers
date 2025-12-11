@@ -9,7 +9,7 @@
     body {
       margin: 0;
       padding: 0;
-      background: linear-gradient(135deg, #1e293b, #0f172a);
+      background: radial-gradient(circle at top, #1e293b, #020617);
       font-family: "Arial", sans-serif;
       color: #fff;
       height: 100vh;
@@ -22,14 +22,14 @@
     .hidden { display: none; }
 
     .container {
-      background: rgba(255, 255, 255, 0.05);
-      padding: 30px;
-      border-radius: 18px;
-      backdrop-filter: blur(8px);
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
-      width: 90%;
-      max-width: 550px;
-      animation: fadeIn 0.5s ease-out;
+      background: rgba(15, 23, 42, 0.9);
+      padding: 30px 22px;
+      border-radius: 22px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+      width: 95%;
+      max-width: 580px;
+      animation: fadeIn 0.4s ease-out;
     }
 
     @keyframes fadeIn {
@@ -37,24 +37,27 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
-    h1 { margin-top: 0; font-size: 2rem; font-weight: 600; }
+    h1 { margin-top: 0; font-size: 2rem; font-weight: 700; }
     h2 { font-size: 1.3rem; margin-bottom: 15px; }
+
+    p { margin-top: 4px; margin-bottom: 8px; }
 
     button {
       cursor: pointer;
       border: none;
       padding: 12px 18px;
-      border-radius: 14px;
+      border-radius: 999px;
       color: white;
       font-size: 1rem;
       font-weight: 600;
       margin-top: 10px;
       background: #3b82f6;
-      transition: 0.2s;
+      transition: transform 0.18s, box-shadow 0.18s, background 0.18s;
     }
 
     button:hover {
-      transform: scale(1.07);
+      transform: translateY(-1px) scale(1.03);
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.4);
       background: #60a5fa;
     }
 
@@ -63,8 +66,74 @@
       max-width: 380px;
     }
 
-    .mode-btn { background: #2563eb; }
-    .mode-btn:hover { background: #3b82f6; }
+    .mode-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px;
+      margin-bottom: 10px;
+    }
+
+    .mode-card {
+      border-radius: 18px;
+      padding: 10px 10px 12px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      cursor: pointer;
+      transition: transform 0.18s, box-shadow 0.18s, border 0.18s;
+    }
+    .mode-card:hover {
+      transform: translateY(-1px) scale(1.03);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+      border-color: #e5e7eb;
+    }
+
+    .mode-icon {
+      font-size: 1.6rem;
+      margin-bottom: 4px;
+    }
+
+    .mode-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .mode-desc {
+      font-size: 0.8rem;
+      opacity: 0.8;
+    }
+
+    .mode-classic { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
+    .mode-qcm     { background: linear-gradient(135deg, #c2410c, #fb923c); }
+    .mode-learn   { background: linear-gradient(135deg, #15803d, #22c55e); }
+    .mode-exam    { background: linear-gradient(135deg, #7c2d12, #ef4444); }
+
+    .mode-classic .mode-desc,
+    .mode-qcm .mode-desc,
+    .mode-learn .mode-desc,
+    .mode-exam .mode-desc {
+      opacity: 0.95;
+    }
+
+    .question-count-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .question-btn {
+      background: #0f172a;
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 0.9rem;
+      border: 1px solid rgba(148, 163, 184, 0.5);
+    }
+    .question-btn:hover {
+      background: #1f2937;
+      border-color: #e5e7eb;
+    }
 
     #next,
     button[onclick="backHome()"],
@@ -78,31 +147,36 @@
     }
 
     .answer-btn {
-      background: #334155;
+      background: #111827;
       padding: 10px 16px;
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 1rem;
       width: 100%;
       max-width: 380px;
       margin: 5px auto;
       display: block;
+      border: 1px solid rgba(148, 163, 184, 0.45);
     }
-    .answer-btn:hover { transform: scale(1.03); background: #475569; }
+    .answer-btn:hover {
+      transform: translateY(-1px) scale(1.02);
+      background: #1f2937;
+    }
 
     #feedback {
       margin-top: 16px;
-      font-size: 1.1rem;
-      min-height: 40px;
+      font-size: 1.05rem;
+      min-height: 48px;
     }
 
     #mistake-list {
-      background: rgba(255,255,255,0.08);
+      background: rgba(15,23,42,0.9);
       padding: 15px;
       border-radius: 12px;
       text-align: left;
-      max-height: 200px;
+      max-height: 220px;
       overflow-y: auto;
       font-size: 0.95rem;
+      border: 1px solid rgba(148,163,184,0.5);
     }
 
     #verb {
@@ -113,7 +187,7 @@
     }
 
     #translation {
-      font-size: 1rem;
+      font-size: 0.95rem;
       opacity: 0.9;
       min-height: 1.2rem;
       margin-bottom: 10px;
@@ -123,9 +197,27 @@
     .form-part { color:#22c55e; font-weight:bold; }   /* vert */
 
     .label-step {
-      font-size: 1rem;
-      opacity: 0.8;
+      font-size: 0.95rem;
+      opacity: 0.85;
       margin-bottom: 8px;
+    }
+
+    #question-counter {
+      opacity: 0.85;
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+
+    #timer {
+      opacity: 0.9;
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+      color: #facc15;
+    }
+
+    .badge-row {
+      margin-top: 8px;
+      font-size: 0.9rem;
     }
   </style>
 </head>
@@ -135,33 +227,72 @@
   <!-- PAGE D'ACCUEIL -->
   <div id="home" class="container">
     <h1>Irregular Verbs Trainer</h1>
-    <p>Entraîne-toi sur les verbes irréguliers anglais.</p>
+    <p>Entraîne-toi sur les verbes irréguliers anglais avec plusieurs modes de jeu.</p>
     <button class="wide-btn" onclick="goToMenu()">🎮 Commencer</button>
   </div>
 
   <!-- MENU -->
   <div id="menu" class="container hidden">
     <h1>Choix du mode</h1>
+    <p style="opacity:0.85; font-size:0.9rem;">
+      Choisis d'abord un mode, puis le nombre de questions.
+    </p>
 
-    <h2>1. Sélectionne un mode :</h2>
-    <button class="mode-btn wide-btn" onclick="selectMode('classic')">Mode Classique (1 QCM = past + part)</button>
-    <button class="mode-btn wide-btn" onclick="selectMode('qcm')">Mode QCM complet (2 étapes)</button>
-    <button class="mode-btn wide-btn" onclick="selectMode('learning')">Mode Apprentissage 🔁</button>
+    <div class="mode-grid">
+      <!-- CLASSIQUE -->
+      <div class="mode-card mode-classic" onclick="selectMode('classic')">
+        <div class="mode-icon">📘</div>
+        <div class="mode-title">Classique</div>
+        <div class="mode-desc">
+          Choisis la bonne combinaison <b>prétérit + participe passé</b> parmi 3 propositions.
+        </div>
+      </div>
 
-    <h2>2. Nombre de questions :</h2>
-    <button onclick="selectQuestionCount(5)"  class="wide-btn">5 questions</button>
-    <button onclick="selectQuestionCount(10)" class="wide-btn">10 questions</button>
-    <button onclick="selectQuestionCount(15)" class="wide-btn">15 questions</button>
-    <button onclick="selectQuestionCount(20)" class="wide-btn">20 questions</button>
+      <!-- QCM COMPLET -->
+      <div class="mode-card mode-qcm" onclick="selectMode('qcm')">
+        <div class="mode-icon">📝</div>
+        <div class="mode-title">QCM complet</div>
+        <div class="mode-desc">
+          Étape 1 : choisis le <b>prétérit</b>. Étape 2 : choisis le <b>participe passé</b>.
+        </div>
+      </div>
 
-    <br><br>
+      <!-- APPRENTISSAGE -->
+      <div class="mode-card mode-learn" onclick="selectMode('learning')">
+        <div class="mode-icon">🔁</div>
+        <div class="mode-title">Apprentissage</div>
+        <div class="mode-desc">
+          Le jeu te repose automatiquement les verbes que tu as ratés, jusqu'à les maîtriser.
+        </div>
+      </div>
+
+      <!-- EXAMEN -->
+      <div class="mode-card mode-exam" onclick="selectMode('exam')">
+        <div class="mode-icon">⏱️</div>
+        <div class="mode-title">Examen</div>
+        <div class="mode-desc">
+          Test chronométré sans traduction. Obtiens une note sur 20.
+        </div>
+      </div>
+    </div>
+
+    <h2 style="margin-top:18px;">Nombre de questions :</h2>
+    <div class="question-count-row">
+      <button class="question-btn" onclick="selectQuestionCount(5)">5</button>
+      <button class="question-btn" onclick="selectQuestionCount(10)">10</button>
+      <button class="question-btn" onclick="selectQuestionCount(15)">15</button>
+      <button class="question-btn" onclick="selectQuestionCount(20)">20</button>
+    </div>
+
+    <br>
     <button onclick="backHome()" class="wide-btn">⬅️ Retour</button>
   </div>
 
   <!-- PAGE DE JEU -->
   <div id="game" class="container hidden">
     <h1 id="game-title"></h1>
-    <div id="question-counter" style="margin-bottom:8px; opacity:0.8; font-size:0.9rem;"></div>
+    <div id="question-counter"></div>
+    <div id="timer"></div>
 
     <div id="verb">...</div>
 
@@ -183,6 +314,7 @@
   <div id="result" class="container hidden">
     <h1>Résultat</h1>
     <h2 id="score-text"></h2>
+    <div id="badge-line" class="badge-row"></div>
 
     <div id="mistake-list"></div>
 
@@ -200,6 +332,7 @@ const result       = document.getElementById("result");
 
 const gameTitle    = document.getElementById("game-title");
 const questionCtr  = document.getElementById("question-counter");
+const timerEl      = document.getElementById("timer");
 const verbEl       = document.getElementById("verb");
 const translationEl= document.getElementById("translation");
 const toggleTransBtn = document.getElementById("toggle-translation");
@@ -209,6 +342,7 @@ const feedbackEl   = document.getElementById("feedback");
 const nextBtn      = document.getElementById("next");
 const scoreText    = document.getElementById("score-text");
 const mistakeList  = document.getElementById("mistake-list");
+const badgeLine    = document.getElementById("badge-line");
 
 // Variables jeu
 let VERBS = [];
@@ -220,12 +354,17 @@ let currentQuestionIndex = 0;
 let score = 0;
 
 let currentVerb = null;
-let currentQuestion = null;   // structure différente selon le mode
+let currentQuestion = null;
 let usedVerbs = [];
 let mistakes = [];
 let learningQueue = [];
 
 let translationVisible = false;
+
+// Examen
+let examTimer = null;
+let examTimeLeft = 0; // en secondes
+let examTotalQuestions = 0;
 
 // Navigation
 function goToMenu() {
@@ -238,6 +377,7 @@ function backHome() {
   menu.classList.add("hidden");
   game.classList.add("hidden");
   result.classList.add("hidden");
+  stopExamTimer();
 }
 
 function selectMode(mode) {
@@ -267,11 +407,25 @@ function startGame() {
   usedVerbs = [];
   learningQueue = [];
   currentQuestionIndex = 0;
+  examTimeLeft = 0;
+  examTotalQuestions = totalQuestions;
+  timerEl.textContent = "";
 
   gameTitle.textContent =
     gameMode === "classic"  ? "Mode Classique" :
     gameMode === "qcm"      ? "Mode QCM complet" :
-    "Mode Apprentissage";
+    gameMode === "learning" ? "Mode Apprentissage" :
+    "Mode Examen";
+
+  // Mode examen : timer + pas de bouton traduction
+  if (gameMode === "exam") {
+    // par ex : 20 secondes par question
+    examTimeLeft = totalQuestions * 20;
+    startExamTimer();
+    toggleTransBtn.style.display = "none";
+  } else {
+    toggleTransBtn.style.display = "inline-block";
+  }
 
   nextQuestion();
 }
@@ -331,7 +485,6 @@ function nextQuestion() {
   btnGroup.innerHTML = "";
   nextBtn.style.display = "none";
   stepLabel.textContent = "";
-
   resetTranslation();
 
   if (!verbsLoaded || VERBS.length === 0) {
@@ -339,8 +492,10 @@ function nextQuestion() {
     return;
   }
 
+  // Fin de partie normale
   if (gameMode !== "learning" && currentQuestionIndex >= totalQuestions) {
-    return endGame();
+    endGame();
+    return;
   }
 
   currentQuestionIndex++;
@@ -349,9 +504,13 @@ function nextQuestion() {
     ? `Question ${currentQuestionIndex}`
     : `Question ${currentQuestionIndex} / ${totalQuestions}`;
 
-  if (gameMode === "classic") loadClassicQuestion();
-  else if (gameMode === "qcm") loadQcmQuestion();
-  else loadLearningQuestion();
+  if (gameMode === "classic" || gameMode === "exam") {
+    loadClassicQuestion();
+  } else if (gameMode === "qcm") {
+    loadQcmQuestion();
+  } else {
+    loadLearningQuestion();
+  }
 }
 
 // Helpers pour générer des propositions
@@ -368,7 +527,7 @@ function getRandomForms(excludedVerb, field) {
   return Array.from(forms).sort(() => Math.random() - 0.5);
 }
 
-/* MODE CLASSIQUE
+/* MODE CLASSIQUE + EXAMEN
    1 QCM : on sélectionne un couple (past + part) correct parmi 3 propositions */
 function loadClassicQuestion() {
   const v = pickVerb();
@@ -398,6 +557,12 @@ function loadClassicQuestion() {
   options.sort(() => Math.random() - 0.5);
   currentQuestion = { verb: v, options };
 
+  // petite consigne
+  stepLabel.textContent =
+    (gameMode === "exam")
+      ? "Choisis la bonne combinaison (past + past participle)."
+      : "Choisis la bonne combinaison prétérit + participe passé.";
+
   options.forEach(opt => {
     const btn = document.createElement("button");
     btn.className = "answer-btn";
@@ -419,8 +584,12 @@ function checkClassic(opt) {
   } else {
     feedbackEl.innerHTML = `
       <span style="color:#ef4444;font-weight:bold;">❌ Faux</span><br>
-      Tu as choisi : <span class="form-past">${opt.past}</span> / <span class="form-part">${opt.part}</span><br>
-      Bonne réponse : <span class="form-past">${v.past}</span> / <span class="form-part">${v.part}</span><br>
+      Tu as choisi :
+        <span class="form-past">${opt.past}</span> /
+        <span class="form-part">${opt.part}</span><br>
+      Bonne réponse :
+        <span class="form-past">${v.past}</span> /
+        <span class="form-part">${v.part}</span><br>
       <span style="opacity:0.9;">📘 ${v.fr}</span>
     `;
     mistakes.push(v);
@@ -432,8 +601,7 @@ function checkClassic(opt) {
 
 /* MODE QCM COMPLET
    Étape 1 : choisir past
-   Étape 2 : choisir part
-   Il faut que les deux soient corrects pour valider la question */
+   Étape 2 : choisir part */
 function loadQcmQuestion() {
   const v = pickVerb();
   currentVerb = v;
@@ -503,11 +671,11 @@ function checkQcmPart(form) {
   } else {
     feedbackEl.innerHTML = `
       <span style="color:#ef4444;font-weight:bold;">❌ Faux</span><br>
-      Tu as choisi : 
-        <span class="form-past">${q.chosenPast || "?"}</span> / 
+      Tu as choisi :
+        <span class="form-past">${q.chosenPast || "?"}</span> /
         <span class="form-part">${q.chosenPart || "?"}</span><br>
-      Bonne réponse : 
-        <span class="form-past">${q.verb.past}</span> / 
+      Bonne réponse :
+        <span class="form-past">${q.verb.past}</span> /
         <span class="form-part">${q.verb.part}</span><br>
       <span style="opacity:0.9;">📘 ${q.verb.fr}</span>
     `;
@@ -526,6 +694,7 @@ function loadLearningQuestion() {
   currentVerb = v;
 
   verbEl.textContent = v.inf;
+  stepLabel.textContent = "Mode apprentissage : revois ce verbe.";
 
   const options = [];
   options.push({ past: v.past, part: v.part, correct: true });
@@ -568,8 +737,12 @@ function checkLearning(opt) {
   } else {
     feedbackEl.innerHTML = `
       <span style="color:#ef4444;font-weight:bold;">❌ Faux</span><br>
-      Tu as choisi : <span class="form-past">${opt.past}</span> / <span class="form-part">${opt.part}</span><br>
-      Bonne réponse : <span class="form-past">${v.past}</span> / <span class="form-part">${v.part}</span><br>
+      Tu as choisi :
+        <span class="form-past">${opt.past}</span> /
+        <span class="form-part">${opt.part}</span><br>
+      Bonne réponse :
+        <span class="form-past">${v.past}</span> /
+        <span class="form-part">${v.part}</span><br>
       <span style="opacity:0.9;">📘 ${v.fr}</span>
     `;
     learningQueue.push(v);
@@ -578,13 +751,67 @@ function checkLearning(opt) {
   nextBtn.style.display = "inline-block";
 }
 
-// Fin de partie
-function endGame() {
+/* EXAMEN : TIMER */
+function startExamTimer() {
+  stopExamTimer();
+
+  updateTimerDisplay();
+  examTimer = setInterval(() => {
+    examTimeLeft--;
+    if (examTimeLeft <= 0) {
+      examTimeLeft = 0;
+      updateTimerDisplay();
+      stopExamTimer();
+      endGame(true); // fin par timer
+    } else {
+      updateTimerDisplay();
+    }
+  }, 1000);
+}
+
+function stopExamTimer() {
+  if (examTimer) {
+    clearInterval(examTimer);
+    examTimer = null;
+  }
+}
+
+function updateTimerDisplay() {
+  if (gameMode !== "exam") {
+    timerEl.textContent = "";
+    return;
+  }
+  const minutes = Math.floor(examTimeLeft / 60);
+  const seconds = examTimeLeft % 60;
+  timerEl.textContent = `⏱ Temps restant : ${minutes}m ${seconds < 10 ? "0"+seconds : seconds}s`;
+}
+
+/* Fin de partie */
+function endGame(fromTimer = false) {
   game.classList.add("hidden");
   result.classList.remove("hidden");
+  stopExamTimer();
+
+  const total = (gameMode === "exam")
+    ? examTotalQuestions
+    : totalQuestions;
 
   scoreText.textContent =
-    `Tu as obtenu ${score} bonne(s) réponse(s) sur ${totalQuestions}.`;
+    `Tu as obtenu ${score} bonne(s) réponse(s) sur ${total}.`;
+
+  // mini "récompenses"
+  let badges = [];
+  const ratio = total > 0 ? score / total : 0;
+
+  if (ratio === 1) badges.push("🌟 Zéro faute !");
+  else if (ratio >= 0.8) badges.push("🏅 Très bon niveau !");
+  else if (ratio >= 0.5) badges.push("👍 Continue, tu es sur la bonne voie.");
+
+  if (fromTimer && gameMode === "exam") {
+    badges.push("⏱ Examen terminé par fin de temps.");
+  }
+
+  badgeLine.textContent = badges.join("  ");
 
   if (mistakes.length === 0) {
     mistakeList.innerHTML = "<p>Aucune erreur 🎉</p>";
