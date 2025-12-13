@@ -507,14 +507,14 @@ body.theme-light .duel-player-card {
   #word { font-size: 2rem; }
   .mode-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-//* ===================== */
-/* MODALES — FIX iPad    */
+/* ===================== */
+/* MODALES — FIX DÉFINITIF */
 /* ===================== */
 
 .modal {
   position: fixed;
   inset: 0;
-  z-index: 9999;             /* au-dessus de tout */
+  z-index: 9999;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -527,13 +527,13 @@ body.theme-light .duel-player-card {
 .modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  z-index: 0;                /* derrière le contenu */
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .modal-content {
   position: relative;
-  z-index: 1;                /* devant le backdrop */
+  z-index: 10000;
+  background: inherit;
   pointer-events: auto;
-  max-width: min(520px, 92vw);
 }
+
