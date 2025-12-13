@@ -1049,52 +1049,57 @@ function saveIdentity() {
 function openSessionModal() {
   if (!sessionModal) return;
 
-  // Sécurité iPad : forcer la modale au premier plan
   sessionModal.classList.remove("hidden");
   sessionModal.setAttribute("aria-hidden", "false");
 }
 
+function closeSessionModal() {
+  if (!sessionModal) return;
+
+  sessionModal.classList.add("hidden");
+  sessionModal.setAttribute("aria-hidden", "true");
+}
+
+function onContinueSession(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  closeSessionModal();
+
+  // retour au menu pour relancer un autre exo
+  result.classList.add("hidden");
+  goToMenu();
+}
+
+function onFinishSession(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  closeSessionModal();
+
+  // génération du QR final
+  buildSessionQR();
+  qrSectionEl.classList.remove("hidden");
+
+  // scroll sûr iPad
+  setTimeout(() => {
+    qrSectionEl.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  }, 50);
+}
+
+// ⚠️ iPad Safari : click + touchend OBLIGATOIRE
 if (sessionContinueBtn) {
-  sessionContinueBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    // ➜ CONTINUER
-    // On garde la séance (sessionResults)
-    // Retour au menu pour refaire un exercice
-    sessionModal.classList.add("hidden");
-    sessionModal.setAttribute("aria-hidden", "true");
-
-    result.classList.add("hidden");
-    goToMenu();
-  });
+  sessionContinueBtn.addEventListener("click", onContinueSession);
+  sessionContinueBtn.addEventListener("touchend", onContinueSession, { passive: false });
 }
 
 if (sessionQrBtn) {
-  sessionQrBtn.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    // ➜ TERMINER
-    // Génération du QR FINAL cumulatif
-    sessionModal.classList.add("hidden");
-    sessionModal.setAttribute("aria-hidden", "true");
-
-    buildSessionQR();
-
-    // Affichage garanti du QR
-    qrSectionEl.classList.remove("hidden");
-
-    // Scroll automatique vers le QR (scan direct iPad)
-    setTimeout(() => {
-      qrSectionEl.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    }, 100);
-  });
+  sessionQrBtn.addEventListener("click", onFinishSession);
+  sessionQrBtn.addEventListener("touchend", onFinishSession, { passive: false });
 }
-
 
 // =====================
 // QR DE SÉANCE
