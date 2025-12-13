@@ -1006,6 +1006,10 @@ function saveIdentity() {
 
 function openSessionModal() {
   if (!sessionModal) return;
+
+  // ✅ Génération automatique du QR dès l'ouverture de la modale
+  buildSessionQR();
+
   sessionModal.classList.remove("hidden");
 }
 
@@ -1018,9 +1022,10 @@ if (sessionContinueBtn) {
 if (sessionQrBtn) {
   sessionQrBtn.addEventListener("click", () => {
     sessionModal.classList.add("hidden");
-    buildSessionQR();
+    buildSessionQR(); // (regénération possible, sans risque)
   });
 }
+
 
 // =====================
 // QR DE SÉANCE
