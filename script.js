@@ -1043,63 +1043,69 @@ function saveIdentity() {
 
 
 // =====================
-// MODALE FIN DE SÉANCE
+// MODALE FIN DE SÉANCE (FIX iPad)
 // =====================
-
-function openSessionModal() {
-  if (!sessionModal) return;
-
-  sessionModal.classList.remove("hidden");
-  sessionModal.setAttribute("aria-hidden", "false");
-}
 
 function closeSessionModal() {
   if (!sessionModal) return;
-
   sessionModal.classList.add("hidden");
   sessionModal.setAttribute("aria-hidden", "true");
 }
 
-function onContinueSession(e) {
-  e.preventDefault();
-  e.stopPropagation();
+function openSessionModal() {
+  if (!sessionModal) return;
 
-  closeSessionModal();
+  // sécurité : masquer le QR si affiché avant
+  if (qrSectionEl) qrSectionEl.classList.add("hidden");
 
-  // retour au menu pour relancer un autre exo
-  result.classList.add("hidden");
-  goToMenu();
+  sessionModal.classList.remove("hidden");
+  sessionModal.setAttribute("aria-hidden", "false");
+
+  // iPad Safari : forcer le focus pour activer la modale
+  const firstBtn = sessionModal.querySelector("button");
+  if (firstBtn) firstBtn.focus();
 }
 
-function onFinishSession(e) {
-  e.preventDefault();
-  e.stopPropagation();
-
-  closeSessionModal();
-
-  // génération du QR final
-  buildSessionQR();
-  qrSectionEl.classList.remove("hidden");
-
-  // scroll sûr iPad
-  setTimeout(() => {
-    qrSectionEl.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
-  }, 50);
-}
-
-// ⚠️ iPad Safari : click + touchend OBLIGATOIRE
+// ➜ CONTINUER
 if (sessionContinueBtn) {
-  sessionContinueBtn.addEventListener("click", onContinueSession);
-  sessionContinueBtn.addEventListener("touchend", onContinueSession, { passive: false });
+  sessionContinueBtn.onclick = (e) => {
+    e.preventDefault();
+
+    closeSessionModal();
+
+    // nettoyage écran
+    result.classList.add("hidden");
+    game.classList.add("hidden");
+    menu.classList.remove("hidden");
+
+    // reset des sélections
+    clearModeSelection();
+    clearDifficultySelection();
+    clearQuestionSelection();
+  };
 }
 
+// ➜ TERMINER
 if (sessionQrBtn) {
-  sessionQrBtn.addEventListener("click", onFinishSession);
-  sessionQrBtn.addEventListener("touchend", onFinishSession, { passive: false });
+  sessionQrBtn.onclick = (e) => {
+    e.preventDefault();
+
+    closeSessionModal();
+
+    buildSessionQR();
+
+    if (qrSectionEl) {
+      qrSectionEl.classList.remove("hidden");
+      setTimeout(() => {
+        qrSectionEl.scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+      }, 50);
+    }
+  };
 }
+
 
 // =====================
 // QR DE SÉANCE
