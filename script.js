@@ -1002,7 +1002,7 @@ function getExerciseLabel(mode) {
 }
 
 // =====================
-// IDENTITÉ ÉLÈVE
+// IDENTITÉ ÉLÈVE (STABLE)
 // =====================
 
 function ensureIdentity() {
@@ -1035,10 +1035,10 @@ function saveIdentity() {
   identityModal.classList.add("hidden");
   identityModal.setAttribute("aria-hidden", "true");
 
-  // ⚠️ On NE RÉINITIALISE PAS sessionResults
-  // Le QR reste cumulatif pour ScanProf
-  qrBoxEl.innerHTML = "";
-  qrSectionEl.classList.add("hidden");
+  // ❗ IMPORTANT
+  // On NE TOUCHE PLUS au QR ici
+  // La génération et l'affichage du QR sont gérés UNIQUEMENT
+  // par la modale de fin de séance
 }
 
 
