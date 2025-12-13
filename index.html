@@ -9,15 +9,27 @@
 <body class="theme-dark">
   <button id="theme-toggle" class="theme-toggle" aria-label="Basculer le thème">☀️</button>
 
+  <!-- ACCUEIL -->
   <div id="home" class="container">
     <h1>Irregular Verbs Trainer</h1>
     <p class="subtitle">Maîtrise les verbes irréguliers anglais avec différents modes de jeu.</p>
     <button class="primary-btn large" onclick="goToMenu()">🚀 Commencer</button>
   </div>
 
+  <!-- MENU -->
   <div id="menu" class="container hidden">
     <h1>Choisis ton mode</h1>
     <p class="subtitle">Puis sélectionne la difficulté et le nombre de questions.</p>
+
+    <!-- 🔔 INDICATEUR DE SÉANCE -->
+    <div class="session-info">
+      <p><strong>ℹ️ Séance en cours</strong></p>
+      <p class="small">
+        Tous les exercices réalisés s’additionnent dans <strong>un seul QR code</strong>.
+        <br>
+        ⚠️ Si tu quittes sans générer le QR, <strong>les résultats seront perdus</strong>.
+      </p>
+    </div>
 
     <div class="mode-grid">
       <div class="mode-card" onclick="selectMode('classic', this)">
@@ -75,12 +87,14 @@
     <button class="danger-btn" onclick="backHome()">⬅ Retour</button>
   </div>
 
+  <!-- JEU -->
   <div id="game" class="container hidden">
     <h1 id="game-title">Mode…</h1>
     <div class="top-infos">
       <div id="question-counter"></div>
       <div id="timer"></div>
     </div>
+
     <div id="duel-players" class="duel-players hidden">
       <div id="player1-card" class="duel-player-card">
         <div class="duel-player-name">Joueur 1</div>
@@ -91,85 +105,68 @@
         <div class="duel-player-score" id="player2-score">0</div>
       </div>
     </div>
+
     <div id="duel-info"></div>
+    <div id="word">...</div>
 
-    <div id="word-wrapper">
-      <div id="word">...</div>
-      <div id="audio-controls">
-        <button id="audio-verb-btn" class="icon-btn" type="button">🔊 Prononciation</button>
-      </div>
-    </div>
-
-    <button id="toggle-translation" class="secondary-btn" type="button">
-      📘 Voir la traduction
-    </button>
+    <button id="toggle-translation" class="secondary-btn">📘 Voir la traduction</button>
     <div id="translation"></div>
 
-    <div id="step-label" class="step-label"></div>
-
-    <div id="btn-group" class="btn-group"></div>
-
+    <div id="step-label"></div>
+    <div id="btn-group"></div>
     <div id="puzzle-area"></div>
-
     <div id="feedback"></div>
 
     <button id="next" class="primary-btn" onclick="nextQuestion()">Suivant ➜</button>
   </div>
 
+  <!-- RÉSULTAT -->
   <div id="result" class="container hidden">
     <h1>Résultat</h1>
     <h2 id="score-text"></h2>
-    <div id="badge-row" class="badge-row"></div>
+    <div id="badge-row"></div>
     <div id="summary"></div>
     <div id="mistake-list"></div>
 
     <div id="qr-section" class="qr-section hidden">
       <h2>QR à montrer à ton professeur</h2>
-      <p class="subtitle small">Il contient ton prénom, ta classe et tes résultats sur chaque exercice réalisé.</p>
+      <p class="subtitle small">
+        ⚠️ Ce QR contient <strong>toute la séance</strong>.  
+        Sans scan, les résultats seront perdus.
+      </p>
       <div id="qrBox"></div>
-      <button id="download-qr-btn" class="secondary-btn" type="button">📥 Télécharger le QR</button>
+      <button id="download-qr-btn" class="secondary-btn">📥 Télécharger le QR</button>
     </div>
 
-    <button class="primary-btn" onclick="restart()">🔁 Rejouer</button>
+    <button class="danger-btn" onclick="restart()">
+      🆕 Nouvelle séance (⚠️ réinitialise tout)
+    </button>
   </div>
 
-  <!-- Modale identité élève -->
-  <div id="identity-modal" class="modal hidden" aria-hidden="true">
-    <div class="modal-backdrop"></div>
+  <!-- MODALES -->
+  <div id="identity-modal" class="modal hidden">
     <div class="modal-content">
       <h2>Bienvenue 👋</h2>
-      <p class="subtitle small">Indique ton prénom et ta classe pour que le QR code soit lisible par ton professeur.</p>
-      <div class="modal-field">
-        <label for="student-firstname">Prénom</label>
-        <input id="student-firstname" type="text" autocomplete="given-name" />
-      </div>
-      <div class="modal-field">
-        <label for="student-class">Classe (ex : 4B, 3C)</label>
-        <input id="student-class" type="text" autocomplete="off" />
-      </div>
-      <button class="primary-btn" type="button" onclick="saveIdentity()">Valider</button>
+      <input id="student-firstname" placeholder="Prénom">
+      <input id="student-class" placeholder="Classe">
+      <button onclick="saveIdentity()">Valider</button>
     </div>
   </div>
 
-  <!-- Modale fin de séance -->
-  <div id="session-modal" class="modal hidden" aria-hidden="true">
-    <div class="modal-backdrop"></div>
+  <div id="session-modal" class="modal hidden">
     <div class="modal-content">
       <h2>Fin de l'exercice</h2>
-      <p class="subtitle small">
-        Veux-tu continuer avec un autre mode / un autre nombre de questions, ou terminer et générer le QR code pour ton professeur ?
+      <p class="small">
+        👉 Continuer = ajouter un exercice au QR  
+        <br>
+        👉 Terminer = générer le QR final
       </p>
-      <div class="modal-actions">
-        <button id="session-continue-btn" class="secondary-btn" type="button">Continuer un autre exercice</button>
-        <button id="session-qr-btn" class="primary-btn" type="button">Terminer et générer le QR</button>
-      </div>
+      <button id="session-continue-btn">Continuer</button>
+      <button id="session-qr-btn">Terminer et générer le QR</button>
     </div>
   </div>
 
-  <!-- ⚠️ VERSION LOCALE DE LA LIB QR (pas de CDN) -->
   <script src="qrcode.min.js"></script>
-
-  <!-- Script principal -->
   <script src="script.js"></script>
 </body>
 </html>
