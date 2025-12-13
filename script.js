@@ -995,7 +995,6 @@ function saveIdentity() {
   localStorage.setItem("ivt-student", JSON.stringify(studentIdentity));
   identityModal.classList.add("hidden");
 
-  sessionResults = [];
   qrBoxEl.innerHTML = "";
   qrSectionEl.classList.add("hidden");
 }
