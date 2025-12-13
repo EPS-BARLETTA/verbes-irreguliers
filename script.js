@@ -889,15 +889,22 @@ function endGame(fromTimer = false) {
       `Tu as obtenu ${score} bonne(s) réponse(s) sur ${total}.`;
   }
 
-  // Enregistrer l'exercice dans la séance (hors duel)
-  if (gameMode !== "duel") {
-    sessionResults.push({
-      mode: gameMode,
-      label: getExerciseLabel(gameMode),
-      score,
-      total
-    });
-  }
+// Enregistrer l'exercice dans la séance (hors duel)
+if (gameMode !== "duel") {
+  const entry = {
+    exo: getExerciseLabel(gameMode),
+    resultat: `${score}/${total}`
+  };
+
+  sessionResults.push(entry);
+
+  // 💾 Sauvegarde pour cumul ScanProf (un seul QR par élève)
+  localStorage.setItem(
+    "ivt-session-results",
+    JSON.stringify(sessionResults)
+  );
+}
+
 
   // Badges
   badgeRow.innerHTML = "";
