@@ -932,7 +932,7 @@ if (gameMode !== "duel") {
     badgeRow.appendChild(span);
   });
 
-  // Résumé
+    // Résumé
   summaryEl.innerHTML = `
     <p><strong>Précision globale :</strong> ${(ratio * 100).toFixed(0)}%</p>
     <p><strong>Meilleure série :</strong> ${maxCombo}</p>
@@ -947,6 +947,7 @@ if (gameMode !== "duel") {
     ).join("");
   }
 
+  // 👉 FIN D’EXERCICE : on ouvre la modale de choix
   openSessionModal();
 }
 
@@ -1002,9 +1003,12 @@ function saveIdentity() {
   localStorage.setItem("ivt-student", JSON.stringify(studentIdentity));
   identityModal.classList.add("hidden");
 
+  // ⚠️ On NE RÉINITIALISE PAS sessionResults
+  // Le QR sera cumulatif pour ScanProf
   qrBoxEl.innerHTML = "";
   qrSectionEl.classList.add("hidden");
 }
+
 
 // =====================
 // MODALE FIN DE SÉANCE
@@ -1013,25 +1017,26 @@ function saveIdentity() {
 function openSessionModal() {
   if (!sessionModal) return;
 
-  // ✅ Génération automatique du QR dès l'ouverture de la modale
-  buildSessionQR();
-
+  // ✅ On ouvre la modale SANS générer le QR
   sessionModal.classList.remove("hidden");
 }
 
 if (sessionContinueBtn) {
   sessionContinueBtn.addEventListener("click", () => {
+    // ➜ Continuer : retour au menu, pas de QR
     sessionModal.classList.add("hidden");
+    result.classList.add("hidden");
+    goToMenu();
   });
 }
 
 if (sessionQrBtn) {
   sessionQrBtn.addEventListener("click", () => {
+    // ➜ Terminer : génération du QR FINAL
     sessionModal.classList.add("hidden");
-    buildSessionQR(); // (regénération possible, sans risque)
+    buildSessionQR();
   });
 }
-
 
 // =====================
 // QR DE SÉANCE
