@@ -1038,26 +1038,36 @@ function saveIdentity() {
 function openSessionModal() {
   if (!sessionModal) return;
 
-  // Ouverture simple de la modale de choix
+  // Sécurité iPad : forcer la modale au premier plan
   sessionModal.classList.remove("hidden");
+  sessionModal.setAttribute("aria-hidden", "false");
 }
 
 if (sessionContinueBtn) {
-  sessionContinueBtn.addEventListener("click", () => {
+  sessionContinueBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     // ➜ CONTINUER
     // On garde la séance (sessionResults)
-    // Retour au menu pour refaire un exo
+    // Retour au menu pour refaire un exercice
     sessionModal.classList.add("hidden");
+    sessionModal.setAttribute("aria-hidden", "true");
+
     result.classList.add("hidden");
     goToMenu();
   });
 }
 
 if (sessionQrBtn) {
-  sessionQrBtn.addEventListener("click", () => {
+  sessionQrBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+
     // ➜ TERMINER
     // Génération du QR FINAL cumulatif
     sessionModal.classList.add("hidden");
+    sessionModal.setAttribute("aria-hidden", "true");
 
     buildSessionQR();
 
@@ -1065,10 +1075,12 @@ if (sessionQrBtn) {
     qrSectionEl.classList.remove("hidden");
 
     // Scroll automatique vers le QR (scan direct iPad)
-    qrSectionEl.scrollIntoView({
-      behavior: "smooth",
-      block: "start"
-    });
+    setTimeout(() => {
+      qrSectionEl.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }, 100);
   });
 }
 
