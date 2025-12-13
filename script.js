@@ -1064,35 +1064,44 @@ function buildSessionQR() {
   qrBoxEl.innerHTML = "";
   qrSectionEl.classList.remove("hidden");
 
-  if (typeof QRCode === "undefined" || !QRCode.toCanvas) {
+  // ✅ API COMPATIBLE AVEC LA LIBRAIRIE QR LOCALE (MDM OK)
+  try {
+    new QRCode(qrBoxEl, {
+      text: json,
+      width: 256,
+      height: 256,
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } catch (e) {
+    console.error(e);
     const pre = document.createElement("pre");
     pre.textContent = json;
     qrBoxEl.appendChild(pre);
-    return;
   }
-
-  const canvas = document.createElement("canvas");
-  QRCode.toCanvas(canvas, json, { width: 256, margin: 2 }, err => {
-    if (err) {
-      console.error(err);
-      return;
-    }
-    qrBoxEl.appendChild(canvas);
-  });
 }
 
 if (downloadQrBtn) {
   downloadQrBtn.addEventListener("click", () => {
+    // 🔍 La lib peut générer <img> OU <canvas>
     const canvas = qrBoxEl.querySelector("canvas");
-    if (!canvas) {
+    const img = qrBoxEl.querySelector("img");
+
+    if (!canvas && !img) {
       alert("Le QR n'est pas encore généré.");
       return;
     }
-    const a = document.createElement("a");
-    a.href = canvas.toDataURL("image/png");
-    a.download = `IrregularVerbs_QR_${studentIdentity.firstName || "ELEVE"}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+
+    const link = document.createElement("a");
+
+    if (canvas) {
+      link.href = canvas.toDataURL("image/png");
+    } else {
+      link.href = img.src;
+    }
+
+    link.download = `IrregularVerbs_QR_${studentIdentity.firstName || "ELEVE"}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   });
 }
