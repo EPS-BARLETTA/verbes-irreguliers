@@ -1,14 +1,7 @@
-/*************************************************
- * BLOC 1 — ÉTAT GLOBAL & RÉFÉRENCES DOM
- *************************************************/
-
-// =====================
-// DONNÉES
-// =====================
 let VERBS = [];
 let verbsLoaded = false;
 
-// état jeu
+// état global
 let gameMode = null;
 let difficultyLevel = 1;
 let totalQuestions = 0;
@@ -20,31 +13,33 @@ let currentVerb = null;
 let currentQuestion = null;
 let translationVisible = false;
 
-// séries
+// streak
 let combo = 0;
 let maxCombo = 0;
 
-// timer examen
+// duel
+let duelPlayer = 1;
+let duelScores = { 1: 0, 2: 0 };
+
+// examen timer
 let examTimer = null;
 let examTimeLeft = 0;
 
-// identité & séance
+// identité & suivi de séance
 let studentIdentity = { firstName: "", classLabel: "" };
 let sessionResults = [];
 
-// =====================
-// RESTAURATION SESSION
-// =====================
-try {
-  const stored = localStorage.getItem("ivt-session-results");
-  if (stored) sessionResults = JSON.parse(stored) || [];
-} catch {
-  sessionResults = [];
+// 🔁 Restauration de la séance (ScanProf cumulatif)
+const storedResults = localStorage.getItem("ivt-session-results");
+if (storedResults) {
+  try {
+    sessionResults = JSON.parse(storedResults) || [];
+  } catch (e) {
+    sessionResults = [];
+  }
 }
 
-// =====================
-// RÉFÉRENCES DOM
-// =====================
+// DOM refs
 const home = document.getElementById("home");
 const menu = document.getElementById("menu");
 const game = document.getElementById("game");
@@ -53,6 +48,12 @@ const result = document.getElementById("result");
 const gameTitle = document.getElementById("game-title");
 const questionCtr = document.getElementById("question-counter");
 const timerEl = document.getElementById("timer");
+const duelInfo = document.getElementById("duel-info");
+const duelPlayersEl = document.getElementById("duel-players");
+const player1Card = document.getElementById("player1-card");
+const player2Card = document.getElementById("player2-card");
+const player1ScoreEl = document.getElementById("player1-score");
+const player2ScoreEl = document.getElementById("player2-score");
 
 const wordEl = document.getElementById("word");
 const translationEl = document.getElementById("translation");
@@ -62,20 +63,20 @@ const btnGroup = document.getElementById("btn-group");
 const puzzleArea = document.getElementById("puzzle-area");
 const feedbackEl = document.getElementById("feedback");
 const nextBtn = document.getElementById("next");
-
 const scoreText = document.getElementById("score-text");
 const badgeRow = document.getElementById("badge-row");
 const mistakeList = document.getElementById("mistake-list");
 const summaryEl = document.getElementById("summary");
-
 const audioVerbBtn = document.getElementById("audio-verb-btn");
+const themeToggleBtn = document.getElementById("theme-toggle");
 
-// QR
+
+// QR section
 const qrSectionEl = document.getElementById("qr-section");
 const qrBoxEl = document.getElementById("qrBox");
 const downloadQrBtn = document.getElementById("download-qr-btn");
 
-// modales
+// Modals
 const identityModal = document.getElementById("identity-modal");
 const identityFirstNameInput = document.getElementById("student-firstname");
 const identityClassInput = document.getElementById("student-class");
@@ -83,24 +84,74 @@ const identityClassInput = document.getElementById("student-class");
 const sessionModal = document.getElementById("session-modal");
 const sessionContinueBtn = document.getElementById("session-continue-btn");
 const sessionQrBtn = document.getElementById("session-qr-btn");
-/*************************************************
- * BLOC 2 — NAVIGATION & RESET ÉCRANS
- *************************************************/
+// =====================
+// THEME HANDLING
+// =====================
 
-function hideAllScreens() {
-  home.classList.add("hidden");
-  menu.classList.add("hidden");
-  game.classList.add("hidden");
-  result.classList.add("hidden");
+(function initTheme() {
+  const stored = localStorage.getItem("ivt-theme");
+  if (stored === "light" || stored === "dark") {
+    applyTheme(stored);
+  } else {
+    applyTheme("dark");
+  }
+
+  // identité éventuelle en cache
+  const storedIdentity = localStorage.getItem("ivt-student");
+  if (storedIdentity) {
+    try {
+      const obj = JSON.parse(storedIdentity);
+      if (obj && obj.firstName && obj.classLabel) {
+        studentIdentity = obj;
+      }
+    } catch (e) {
+      console.warn("Cannot parse stored identity", e);
+    }
+  }
+})();
+
+themeToggleBtn.addEventListener("click", () => {
+  const isDark = document.body.classList.contains("theme-dark");
+  applyTheme(isDark ? "light" : "dark");
+});
+
+function applyTheme(theme) {
+  document.body.classList.remove("theme-dark", "theme-light");
+  document.body.classList.add(`theme-${theme}`);
+  themeToggleBtn.textContent = theme === "dark" ? "☀️" : "🌙";
+  localStorage.setItem("ivt-theme", theme);
 }
 
-function goToMenu() {
-  hideAllScreens();
-  closeAllModals();
-  hideQR();
+// =====================
+// AUDIO : prononciation
+// =====================
 
+audioVerbBtn.addEventListener("click", () => {
+  if (!currentVerb) return;
+  speakText(currentVerb.inf);
+});
+
+function speakText(text) {
+  if (!("speechSynthesis" in window)) {
+    alert("La synthèse vocale n'est pas supportée sur ce navigateur.");
+    return;
+  }
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = "en-US";
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+}
+// =====================
+// NAVIGATION
+// =====================
+
+function goToMenu() {
+  home.classList.add("hidden");
+  result.classList.add("hidden");
+  game.classList.add("hidden");
   menu.classList.remove("hidden");
 
+  // 🔄 Reset UX : rien n'est présélectionné
   clearModeSelection();
   clearDifficultySelection();
   clearQuestionSelection();
@@ -110,25 +161,25 @@ function goToMenu() {
 
 function backHome() {
   stopExamTimer();
-  hideAllScreens();
-  closeAllModals();
-  hideQR();
-
+  menu.classList.add("hidden");
+  game.classList.add("hidden");
+  result.classList.add("hidden");
   home.classList.remove("hidden");
 
+  // 🔄 Reset aussi en retour accueil
   clearModeSelection();
   clearDifficultySelection();
   clearQuestionSelection();
 }
 
 // =====================
-// RESET UI
+// DIFFICULTÉ
 // =====================
 
-function clearModeSelection() {
-  document
-    .querySelectorAll(".mode-card")
-    .forEach(c => c.classList.remove("selected"));
+function setDifficulty(n, el) {
+  difficultyLevel = n;
+  clearDifficultySelection();
+  if (el) el.classList.add("selected");
 }
 
 function clearDifficultySelection() {
@@ -137,372 +188,42 @@ function clearDifficultySelection() {
     .forEach(b => b.classList.remove("selected"));
 }
 
+// =====================
+// MODES DE JEU
+// =====================
+
+function selectMode(mode, el) {
+  gameMode = mode;
+  clearModeSelection();
+  if (el) el.classList.add("selected");
+}
+
+function clearModeSelection() {
+  document
+    .querySelectorAll(".mode-card")
+    .forEach(c => c.classList.remove("selected"));
+}
+
+// =====================
+// NOMBRE DE QUESTIONS
+// =====================
+
 function clearQuestionSelection() {
   document
     .querySelectorAll(".question-buttons button")
     .forEach(b => b.classList.remove("selected"));
 }
 
-// =====================
-// QR
-// =====================
-
-function hideQR() {
-  if (qrSectionEl) qrSectionEl.classList.add("hidden");
-  if (qrBoxEl) qrBoxEl.innerHTML = "";
-}
-/*************************************************
- * BLOC 3 — IDENTITÉ ÉLÈVE (MODALE STABLE)
- *************************************************/
-
-// =====================
-// HELPERS MODALE IDENTITÉ
-// =====================
-
-function openIdentityModal() {
-  if (!identityModal) return;
-
-  // sécurité : fermer la modale de fin si ouverte
-  if (sessionModal) {
-    sessionModal.classList.add("hidden");
-    sessionModal.setAttribute("aria-hidden", "true");
-  }
-
-  identityModal.classList.remove("hidden");
-  identityModal.setAttribute("aria-hidden", "false");
-
-  if (identityFirstNameInput) identityFirstNameInput.focus();
-}
-
-function closeIdentityModal() {
-  if (!identityModal) return;
-  identityModal.classList.add("hidden");
-  identityModal.setAttribute("aria-hidden", "true");
-}
-
-// =====================
-// LOGIQUE IDENTITÉ
-// =====================
-
-function ensureIdentity() {
-  // ❌ jamais pendant la fin de séance
-  if (sessionModal && !sessionModal.classList.contains("hidden")) return;
-
-  if (studentIdentity.firstName && studentIdentity.classLabel) return;
-
-  if (identityFirstNameInput) identityFirstNameInput.value = "";
-  if (identityClassInput) identityClassInput.value = "";
-
-  openIdentityModal();
-}
-
-function saveIdentity() {
-  const fn = identityFirstNameInput.value.trim();
-  const cl = identityClassInput.value.trim();
-
-  if (!fn || !cl) {
-    alert("Merci de renseigner ton prénom et ta classe.");
+function selectQuestionCount(n, el) {
+  if (!gameMode) {
+    alert("Choisis un mode d'abord.");
     return;
   }
-
-  studentIdentity.firstName = fn;
-  studentIdentity.classLabel = cl;
-
-  localStorage.setItem("ivt-student", JSON.stringify(studentIdentity));
-
-  closeIdentityModal();
-}
-/*************************************************
- * BLOC 4 — MODALE FIN DE SÉANCE (STABLE iPad)
- *************************************************/
-
-// =====================
-// HELPERS MODALE FIN
-// =====================
-
-function openSessionModal() {
-  if (!sessionModal) return;
-
-  // sécurité : fermer identité si ouverte
-  closeIdentityModal();
-
-  // la modale passe toujours AU-DESSUS
-  sessionModal.classList.remove("hidden");
-  sessionModal.setAttribute("aria-hidden", "false");
-
-  // focus obligatoire iPad Safari
-  const firstBtn = sessionModal.querySelector("button");
-  if (firstBtn) firstBtn.focus();
-}
-
-function closeSessionModal() {
-  if (!sessionModal) return;
-  sessionModal.classList.add("hidden");
-  sessionModal.setAttribute("aria-hidden", "true");
-}
-
-// =====================
-// ACTIONS BOUTONS
-// =====================
-
-// ➜ CONTINUER UN AUTRE EXERCICE
-function handleContinueSession(e) {
-  e.preventDefault();
-  e.stopPropagation();
-
-  closeSessionModal();
-
-  // nettoyage écrans
-  result.classList.add("hidden");
-  game.classList.add("hidden");
-  home.classList.add("hidden");
-  menu.classList.remove("hidden");
-
-  // reset UX
-  clearModeSelection();
-  clearDifficultySelection();
+  totalQuestions = n;
   clearQuestionSelection();
+  if (el) el.classList.add("selected");
+  startGame();
 }
-
-// ➜ TERMINER & GÉNÉRER LE QR
-function handleFinishSession(e) {
-  e.preventDefault();
-  e.stopPropagation();
-
-  closeSessionModal();
-
-  buildSessionQR();
-
-  if (qrSectionEl) {
-    qrSectionEl.classList.remove("hidden");
-
-    // scroll fiable iPad
-    setTimeout(() => {
-      qrSectionEl.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    }, 100);
-  }
-}
-
-// =====================
-// LISTENERS (click + touchend)
-// =====================
-
-if (sessionContinueBtn) {
-  sessionContinueBtn.onclick = handleContinueSession;
-  sessionContinueBtn.addEventListener(
-    "touchend",
-    handleContinueSession,
-    { passive: false }
-  );
-}
-
-if (sessionQrBtn) {
-  sessionQrBtn.onclick = handleFinishSession;
-  sessionQrBtn.addEventListener(
-    "touchend",
-    handleFinishSession,
-    { passive: false }
-  );
-}
-/*************************************************
- * BLOC 5 — QR DE SÉANCE + NOUVELLE SÉANCE (FINAL)
- *************************************************/
-
-// =====================
-// NORMALISATION CLASSE
-// =====================
-
-function normaliseClassLabel(raw) {
-  if (!raw) return "";
-  let s = raw
-    .toUpperCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  s = s.replace(/\s+/g, "");
-  const match = s.match(/(\d+)([A-Z])/);
-  return match ? match[1] + match[2] : s;
-}
-
-// =====================
-// GÉNÉRATION QR (ScanProf)
-// =====================
-
-function buildSessionQR() {
-  if (!studentIdentity.firstName || !studentIdentity.classLabel) {
-    ensureIdentity();
-    return;
-  }
-
-  if (!sessionResults.length) {
-    alert("Aucun exercice réalisé pour cette séance.");
-    return;
-  }
-
-  const payload = {
-    prenom: studentIdentity.firstName.toUpperCase(),
-    classe: normaliseClassLabel(studentIdentity.classLabel),
-    exercices: sessionResults.map(r => ({
-      exo: r.exo,
-      resultat: r.resultat
-    }))
-  };
-
-  const json = JSON.stringify(payload);
-
-  if (qrBoxEl) qrBoxEl.innerHTML = "";
-  if (qrSectionEl) qrSectionEl.classList.remove("hidden");
-
-  if (typeof QRCode === "undefined") {
-    alert("Erreur : librairie QRCode non chargée.");
-    return;
-  }
-
-  new QRCode(qrBoxEl, {
-    text: json,
-    width: 256,
-    height: 256,
-    correctLevel: QRCode.CorrectLevel.H
-  });
-}
-
-// =====================
-// TÉLÉCHARGER LE QR
-// =====================
-
-if (downloadQrBtn) {
-  downloadQrBtn.onclick = () => {
-    const canvas = qrBoxEl.querySelector("canvas");
-    const img = qrBoxEl.querySelector("img");
-
-    if (!canvas && !img) {
-      alert("Le QR n'est pas encore généré.");
-      return;
-    }
-
-    const link = document.createElement("a");
-    link.href = canvas ? canvas.toDataURL("image/png") : img.src;
-    link.download = `IrregularVerbs_QR_${studentIdentity.firstName || "ELEVE"}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-}
-
-// =====================
-// NOUVELLE SÉANCE (RESET TOTAL)
-// =====================
-
-function restart() {
-  // fermer toutes les modales
-  closeSessionModal();
-  closeIdentityModal();
-
-  // reset ScanProf
-  sessionResults = [];
-  localStorage.removeItem("ivt-session-results");
-
-  // reset QR
-  if (qrBoxEl) qrBoxEl.innerHTML = "";
-  if (qrSectionEl) qrSectionEl.classList.add("hidden");
-
-  // retour menu propre
-  result.classList.add("hidden");
-  game.classList.add("hidden");
-  home.classList.add("hidden");
-  menu.classList.remove("hidden");
-
-  clearModeSelection();
-  clearDifficultySelection();
-  clearQuestionSelection();
-}
-/*************************************************
- * BLOC 6 — FIN D’EXERCICE (DÉCLENCHEUR UNIQUE)
- *************************************************/
-
-function endGame(fromTimer = false) {
-  stopExamTimer();
-
-  // afficher écran résultat
-  hideAllScreens();
-  result.classList.remove("hidden");
-
-  // calcul total réel
-  let total = totalQuestions;
-  if (
-    gameMode === "learning" ||
-    gameMode === "puzzle" ||
-    gameMode === "flashcards"
-  ) {
-    total = currentIndex;
-  }
-
-  // score texte
-  if (gameMode === "exam") {
-    const note = total > 0 ? Math.round((score / total) * 20) : 0;
-    scoreText.textContent = `Tu as obtenu ${score}/${total} (${note}/20)`;
-  } else {
-    scoreText.textContent = `Tu as obtenu ${score}/${total}`;
-  }
-
-  // sauvegarde ScanProf (hors duel)
-  if (gameMode !== "duel") {
-    sessionResults.push({
-      exo: getExerciseLabel(gameMode),
-      resultat: `${score}/${total}`
-    });
-
-    localStorage.setItem(
-      "ivt-session-results",
-      JSON.stringify(sessionResults)
-    );
-  }
-
-  // erreurs
-  if (mistakes.length === 0) {
-    mistakeList.innerHTML = "<p>Aucune erreur 🎉</p>";
-  } else {
-    mistakeList.innerHTML = mistakes.map(v =>
-      `<p>• ${v.inf} → <span class="form-past">${v.past}</span> /
-       <span class="form-part">${v.part}</span></p>`
-    ).join("");
-  }
-
-  // ouvrir la modale AU-DESSUS (1 seule fois)
-  setTimeout(() => {
-    openSessionModal();
-  }, 50);
-}
-/*************************************************
- * BLOC 7 — QUESTION SUIVANTE
- *************************************************/
-
-if (nextBtn) {
-  nextBtn.onclick = () => {
-    nextQuestion();
-  };
-}
-/*************************************************
- * BLOC 8 — LABEL EXERCICE
- *************************************************/
-
-function getExerciseLabel(mode) {
-  switch (mode) {
-    case "classic": return "Classique";
-    case "qcm": return "QCM";
-    case "learning": return "Apprentissage";
-    case "exam": return "Examen";
-    case "puzzle": return "Puzzle";
-    case "flashcards": return "Flashcards";
-    default: return "Exercice";
-  }
-}
-/*************************************************
- * BLOC 9 — CHARGEMENT DES VERBES & START GAME
- *************************************************/
-
 // =====================
 // CHARGEMENT DES VERBES
 // =====================
@@ -510,22 +231,16 @@ function getExerciseLabel(mode) {
 async function loadVerbs() {
   try {
     const res = await fetch("verbs.json");
-    const data = await res.json();
-
-    if (!Array.isArray(data) || !data.length) {
-      throw new Error("Liste de verbes invalide");
-    }
-
-    VERBS = data;
-    verbsLoaded = true;
+    VERBS = await res.json();
+    verbsLoaded = Array.isArray(VERBS) && VERBS.length > 0;
   } catch (e) {
-    console.error("Erreur chargement verbes", e);
+    console.error(e);
     wordEl.textContent = "Erreur de chargement des verbes.";
   }
 }
 
 // =====================
-// DÉMARRAGE JEU
+// DÉMARRAGE DU JEU
 // =====================
 
 async function startGame() {
@@ -533,23 +248,36 @@ async function startGame() {
     await loadVerbs();
   }
 
-  // reset état
   score = 0;
   mistakes = [];
   learningQueue = [];
   currentIndex = 0;
+  translationVisible = false;
   combo = 0;
   maxCombo = 0;
-  translationVisible = false;
 
-  // bascule écrans
-  hideAllScreens();
+  duelPlayer = 1;
+  duelScores = { 1: 0, 2: 0 };
+  duelInfo.textContent = "";
+  duelPlayersEl.classList.add("hidden");
+  player1Card.classList.remove("duel-active");
+  player2Card.classList.remove("duel-active");
+  player1ScoreEl.textContent = "0";
+  player2ScoreEl.textContent = "0";
+
+  menu.classList.add("hidden");
+  result.classList.add("hidden");
   game.classList.remove("hidden");
 
-  // titre
-  gameTitle.textContent = getExerciseLabel(gameMode);
+  gameTitle.textContent =
+    gameMode === "classic" ? "Mode classique" :
+    gameMode === "qcm" ? "Mode QCM" :
+    gameMode === "learning" ? "Mode apprentissage" :
+    gameMode === "exam" ? "Mode examen" :
+    gameMode === "puzzle" ? "Mode puzzle" :
+    gameMode === "duel" ? "Mode duel" :
+    "Mode flashcards";
 
-  // timer examen
   if (gameMode === "exam") {
     examTimeLeft = totalQuestions * 20;
     startExamTimer();
@@ -560,658 +288,32 @@ async function startGame() {
     toggleTransBtn.style.display = "inline-block";
   }
 
+  if (gameMode === "duel") {
+    duelInfo.textContent = "Joueur 1 commence.";
+    duelPlayersEl.classList.remove("hidden");
+    updateDuelVisual();
+  }
+
   nextQuestion();
 }
-/*************************************************
- * BLOC 10 — QUESTION SUIVANTE & SÉLECTION VERBE
- *************************************************/
-
 // =====================
-// RESET UI QUESTION
+// OUTILS D’AFFICHAGE QUESTION
 // =====================
 
-function resetUIForQuestion() {
-  btnGroup.innerHTML = "";
-  puzzleArea.innerHTML = "";
-  feedbackEl.innerHTML = "";
-  stepLabel.textContent = "";
-  nextBtn.style.display = "none";
+toggleTransBtn.addEventListener("click", () => {
+  translationVisible = !translationVisible;
+  updateTranslationDisplay();
+});
 
-  if (translationVisible) {
-    translationEl.textContent = currentVerb?.fr || "";
+function updateTranslationDisplay() {
+  if (translationVisible && currentVerb) {
+    translationEl.textContent = currentVerb.fr || "";
+    toggleTransBtn.textContent = "Masquer la traduction";
   } else {
     translationEl.textContent = "";
+    toggleTransBtn.textContent = "📘 Voir la traduction";
   }
 }
-
-// =====================
-// QUESTION SUIVANTE
-// =====================
-
-function nextQuestion() {
-  resetUIForQuestion();
-
-  // fin de partie
-  if (currentIndex >= totalQuestions) {
-    endGame();
-    return;
-  }
-
-  currentIndex++;
-  questionCtr.textContent = `Question ${currentIndex} / ${totalQuestions}`;
-
-  // choix du verbe
-  if (learningQueue.length > 0) {
-    currentVerb = learningQueue.shift();
-  } else {
-    currentVerb = VERBS[Math.floor(Math.random() * VERBS.length)];
-  }
-
-  wordEl.textContent = currentVerb.inf;
-
-  // dispatcher selon mode
-  switch (gameMode) {
-    case "classic":
-    case "exam":
-      loadClassicQuestion();
-      break;
-
-    case "qcm":
-      loadQcmQuestion();
-      break;
-
-    case "learning":
-      loadLearningQuestion();
-      break;
-
-    case "puzzle":
-      loadPuzzleQuestion();
-      break;
-
-    case "flashcards":
-      loadFlashcardQuestion();
-      break;
-
-    default:
-      console.warn("Mode inconnu :", gameMode);
-      endGame();
-  }
-}
-/*************************************************
- * BLOC 11 — MODE CLASSIQUE
- *************************************************/
-
-// =====================
-// OUTILS
-// =====================
-
-function shuffle(arr) {
-  return arr.sort(() => Math.random() - 0.5);
-}
-
-function pickDifferent(list, correct) {
-  const filtered = list.filter(v => v && v !== correct);
-  if (!filtered.length) return correct;
-  return filtered[Math.floor(Math.random() * filtered.length)];
-}
-
-function generateFakePast(v) {
-  const variants = [
-    v.inf + "ed",
-    v.inf + "d",
-    v.past + "ed",
-    v.part,
-    v.past.split("").reverse().join("")
-  ];
-  return pickDifferent(variants, v.past);
-}
-
-function generateFakePart(v) {
-  const variants = [
-    v.inf + "ed",
-    v.inf + "en",
-    v.part + "ed",
-    v.past,
-    v.part.split("").reverse().join("")
-  ];
-  return pickDifferent(variants, v.part);
-}
-
-// =====================
-// GÉNÉRATION OPTIONS
-// =====================
-
-function generateClassicOptions(v) {
-  return shuffle([
-    { past: v.past, part: v.part, correct: true },
-    { past: generateFakePast(v), part: generateFakePart(v), correct: false },
-    { past: generateFakePast(v), part: generateFakePart(v), correct: false }
-  ]);
-}
-
-// =====================
-// CHARGEMENT QUESTION
-// =====================
-
-function loadClassicQuestion() {
-  const v = currentVerb;
-  const options = generateClassicOptions(v);
-  currentQuestion = { verb: v, options };
-
-  stepLabel.textContent =
-    "Choisis la bonne combinaison (past / past participle)";
-
-  options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `
-      <span class="form-past">${opt.past}</span> /
-      <span class="form-part">${opt.part}</span>
-    `;
-
-    btn.onclick = () => checkClassicAnswer(opt);
-    btnGroup.appendChild(btn);
-  });
-}
-
-// =====================
-// VÉRIFICATION
-// =====================
-
-function checkClassicAnswer(opt) {
-  const v = currentQuestion.verb;
-
-  if (opt.correct) {
-    score++;
-    combo++;
-    feedbackEl.innerHTML =
-      `<span style="color:#22c55e;">✔ Correct</span>`;
-  } else {
-    combo = 0;
-    mistakes.push(v);
-    learningQueue.push(v);
-    feedbackEl.innerHTML = `
-      ❌ Faux<br>
-      Bonne réponse :
-      <span class="form-past">${v.past}</span> /
-      <span class="form-part">${v.part}</span>
-    `;
-  }
-
-  if (combo > maxCombo) maxCombo = combo;
-
-  nextBtn.style.display = "inline-block";
-}
-/*************************************************
- * BLOC 12 — MODE QCM
- *************************************************/
-
-// =====================
-// CHARGEMENT QUESTION QCM
-// =====================
-
-function loadQcmQuestion() {
-  const v = currentVerb;
-
-  currentQuestion = {
-    verb: v,
-    step: "past",
-    pastCorrect: false
-  };
-
-  stepLabel.textContent = "Étape 1 : choisis le prétérit";
-  btnGroup.innerHTML = "";
-  feedbackEl.innerHTML = "";
-
-  const pasts = shuffle([
-    v.past,
-    generateFakePast(v),
-    generateFakePast(v)
-  ]);
-
-  pasts.forEach(p => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-past">${p}</span>`;
-    btn.onclick = () => checkQcmPast(p);
-    btnGroup.appendChild(btn);
-  });
-}
-
-// =====================
-// ÉTAPE 1 — PRÉTÉRIT
-// =====================
-
-function checkQcmPast(past) {
-  const q = currentQuestion;
-  q.pastCorrect = past === q.verb.past;
-
-  stepLabel.textContent = "Étape 2 : choisis le participe passé";
-  btnGroup.innerHTML = "";
-
-  const parts = shuffle([
-    q.verb.part,
-    generateFakePart(q.verb),
-    generateFakePart(q.verb)
-  ]);
-
-  parts.forEach(pp => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-part">${pp}</span>`;
-    btn.onclick = () => checkQcmPart(pp);
-    btnGroup.appendChild(btn);
-  });
-}
-
-// =====================
-// ÉTAPE 2 — PARTICIPE
-// =====================
-
-function checkQcmPart(part) {
-  const q = currentQuestion;
-  const correct = q.pastCorrect && part === q.verb.part;
-
-  if (correct) {
-    score++;
-    combo++;
-    feedbackEl.innerHTML =
-      `<span style="color:#22c55e;">✔ Correct</span>`;
-  } else {
-    combo = 0;
-    mistakes.push(q.verb);
-    learningQueue.push(q.verb);
-    feedbackEl.innerHTML = `
-      ❌ Faux<br>
-      Bonne réponse :
-      <span class="form-past">${q.verb.past}</span> /
-      <span class="form-part">${q.verb.part}</span>
-    `;
-  }
-
-  if (combo > maxCombo) maxCombo = combo;
-
-  nextBtn.style.display = "inline-block";
-}
-/*************************************************
- * BLOC 13 — MODE LEARNING
- *************************************************/
-
-// =====================
-// CHARGEMENT QUESTION LEARNING
-// =====================
-
-function loadLearningQuestion() {
-  const v = currentVerb;
-  currentQuestion = { verb: v };
-
-  stepLabel.textContent = "Mode apprentissage : choisis la bonne réponse";
-  btnGroup.innerHTML = "";
-  feedbackEl.innerHTML = "";
-
-  const options = generateOptions(v);
-
-  options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `
-      <span class="form-past">${opt.past}</span> /
-      <span class="form-part">${opt.part}</span>
-    `;
-    btn.onclick = () => checkLearning(opt);
-    btnGroup.appendChild(btn);
-  });
-}
-
-// =====================
-// VÉRIFICATION LEARNING
-// =====================
-
-function checkLearning(opt) {
-  const v = currentQuestion.verb;
-
-  if (opt.correct) {
-    score++;
-    combo++;
-    feedbackEl.innerHTML =
-      `<span style="color:#22c55e;">✔ Correct</span>`;
-  } else {
-    combo = 0;
-    mistakes.push(v);
-    learningQueue.push(v);
-    feedbackEl.innerHTML = `
-      ❌ Faux<br>
-      Bonne réponse :
-      <span class="form-past">${v.past}</span> /
-      <span class="form-part">${v.part}</span>
-    `;
-  }
-
-  if (combo > maxCombo) maxCombo = combo;
-
-  nextBtn.style.display = "inline-block";
-}
-/*************************************************
- * BLOC 14 — MODE PUZZLE (clic → clic, iPad safe)
- *************************************************/
-
-function loadPuzzleQuestion() {
-  const v = currentVerb;
-  currentQuestion = { verb: v };
-
-  stepLabel.textContent = "Clique sur une forme puis sur la bonne case.";
-
-  puzzleArea.innerHTML = "";
-  feedbackEl.innerHTML = "";
-
-  let selectedValue = null;
-
-  const forms = shuffle([v.inf, v.past, v.part]);
-
-  const zone = document.createElement("div");
-  zone.className = "puzzle-zone";
-
-  const rows = [
-    { label: "Infinitif", key: "inf" },
-    { label: "Prétérit", key: "past" },
-    { label: "Participe", key: "part" }
-  ];
-
-  rows.forEach(r => {
-    const row = document.createElement("div");
-    row.className = "puzzle-row";
-
-    const lab = document.createElement("div");
-    lab.className = "slot-label";
-    lab.textContent = r.label;
-
-    const slot = document.createElement("div");
-    slot.className = "drop-slot";
-    slot.dataset.target = r.key;
-
-    slot.onclick = () => {
-      if (!selectedValue) return;
-      slot.textContent = selectedValue;
-      slot.dataset.value = selectedValue;
-
-      selectedValue = null;
-      document
-        .querySelectorAll(".drag-item")
-        .forEach(i => i.classList.remove("selected"));
-    };
-
-    row.appendChild(lab);
-    row.appendChild(slot);
-    zone.appendChild(row);
-  });
-
-  const bank = document.createElement("div");
-  bank.className = "drag-bank";
-
-  forms.forEach(f => {
-    const item = document.createElement("div");
-    item.className = "drag-item";
-    item.textContent = f;
-
-    item.onclick = () => {
-      selectedValue = f;
-      document
-        .querySelectorAll(".drag-item")
-        .forEach(i => i.classList.remove("selected"));
-      item.classList.add("selected");
-    };
-
-    bank.appendChild(item);
-  });
-
-  puzzleArea.appendChild(zone);
-  puzzleArea.appendChild(bank);
-
-  const btn = document.createElement("button");
-  btn.className = "primary-btn";
-  btn.style.marginTop = "12px";
-  btn.textContent = "Vérifier";
-  btn.onclick = checkPuzzle;
-  puzzleArea.appendChild(btn);
-}
-
-function checkPuzzle() {
-  const slots = puzzleArea.querySelectorAll(".drop-slot");
-  let ok = true;
-
-  slots.forEach(slot => {
-    const target = slot.dataset.target;
-    const value = slot.dataset.value;
-    if (!value || value !== currentVerb[target]) {
-      ok = false;
-    }
-  });
-
-  if (ok) {
-    feedbackEl.innerHTML = `<span style="color:#22c55e;">✔ Tout est correct !</span>`;
-  } else {
-    feedbackEl.innerHTML = `❌ Il y a des erreurs.<br>
-      Bonne réponse : ${currentVerb.inf} /
-      <span class="form-past">${currentVerb.past}</span> /
-      <span class="form-part">${currentVerb.part}</span>`;
-  }
-
-  registerResult(ok, currentVerb, true, false);
-  nextBtn.style.display = "inline-block";
-}
-/*************************************************
- * BLOC 15 — MODE FLASHCARDS
- *************************************************/
-
-function loadFlashcardQuestion() {
-  const v = currentVerb;
-  currentQuestion = { verb: v };
-
-  stepLabel.textContent =
-    "Mode flashcards : essaie de te souvenir des formes, puis affiche la réponse.";
-
-  btnGroup.innerHTML = "";
-  feedbackEl.innerHTML = "";
-
-  const revealBtn = document.createElement("button");
-  revealBtn.className = "primary-btn";
-  revealBtn.textContent = "Afficher la réponse";
-  revealBtn.onclick = showFlashcardAnswer;
-  btnGroup.appendChild(revealBtn);
-}
-
-function showFlashcardAnswer() {
-  const v = currentQuestion.verb;
-
-  feedbackEl.innerHTML = `
-    <div class="flashcard-answer">
-      <strong>${v.inf}</strong><br>
-      Past : <span class="form-past">${v.past}</span><br>
-      Participe : <span class="form-part">${v.part}</span><br>
-      <span style="opacity:0.85;">${v.fr || ""}</span>
-    </div>
-  `;
-
-  btnGroup.innerHTML = "";
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "flashcard-buttons";
-
-  const knewBtn = document.createElement("button");
-  knewBtn.className = "primary-btn";
-  knewBtn.textContent = "Je savais ✅";
-  knewBtn.onclick = () => validateFlashcard(true);
-
-  const didntBtn = document.createElement("button");
-  didntBtn.className = "secondary-btn";
-  didntBtn.textContent = "Je ne savais pas ❌";
-  didntBtn.onclick = () => validateFlashcard(false);
-
-  wrapper.appendChild(knewBtn);
-  wrapper.appendChild(didntBtn);
-  btnGroup.appendChild(wrapper);
-}
-
-function validateFlashcard(knew) {
-  if (knew) {
-    registerResult(true, currentVerb, false, false);
-    feedbackEl.innerHTML +=
-      `<div style="margin-top:6px;color:#22c55e;">Bien joué !</div>`;
-  } else {
-    registerResult(false, currentVerb, true, false);
-    feedbackEl.innerHTML +=
-      `<div style="margin-top:6px;color:#f97316;">
-        Pas grave, tu le reverras dans les autres modes.
-       </div>`;
-  }
-  nextBtn.style.display = "inline-block";
-}
-/*************************************************
- * BLOC 16 — TIMER DE L'EXAMEN
- *************************************************/
-
-function startExamTimer() {
-  stopExamTimer();
-  updateTimerDisplay();
-
-  examTimer = setInterval(() => {
-    examTimeLeft--;
-    if (examTimeLeft <= 0) {
-      examTimeLeft = 0;
-      updateTimerDisplay();
-      stopExamTimer();
-      endGame(true);
-    } else {
-      updateTimerDisplay();
-    }
-  }, 1000);
-}
-
-function stopExamTimer() {
-  if (examTimer) {
-    clearInterval(examTimer);
-    examTimer = null;
-  }
-}
-
-function updateTimerDisplay() {
-  const m = Math.floor(examTimeLeft / 60);
-  const s = examTimeLeft % 60;
-  timerEl.textContent =
-    `⏱ Temps restant : ${m}m ${s < 10 ? "0" + s : s}s`;
-}
-/*************************************************
- * BLOC 17 — FIN DE PARTIE & BILAN
- *************************************************/
-
-function endGame(fromTimer = false) {
-  stopExamTimer();
-
-  // afficher écran résultat
-  hideAllScreens();
-  result.classList.remove("hidden");
-
-  // calcul total réel
-  let total = totalQuestions;
-  if (
-    gameMode === "learning" ||
-    gameMode === "puzzle" ||
-    gameMode === "flashcards"
-  ) {
-    total = currentIndex;
-  }
-
-  // score texte
-  if (gameMode === "exam") {
-    const note = total > 0 ? Math.round((score / total) * 20) : 0;
-    scoreText.textContent = `Tu as obtenu ${score}/${total} (${note}/20)`;
-  } else {
-    scoreText.textContent = `Tu as obtenu ${score}/${total}`;
-  }
-
-  // sauvegarde ScanProf (hors duel)
-  if (gameMode !== "duel") {
-    sessionResults.push({
-      exo: getExerciseLabel(gameMode),
-      resultat: `${score}/${total}`
-    });
-
-    localStorage.setItem(
-      "ivt-session-results",
-      JSON.stringify(sessionResults)
-    );
-  }
-
-  // erreurs
-  if (mistakes.length === 0) {
-    mistakeList.innerHTML = "<p>Aucune erreur 🎉</p>";
-  } else {
-    mistakeList.innerHTML = mistakes.map(v =>
-      `<p>• ${v.inf} → <span class="form-past">${v.past}</span> /
-       <span class="form-part">${v.part}</span></p>`
-    ).join("");
-  }
-
-  // ouvrir la modale AU-DESSUS (1 seule fois)
-  setTimeout(() => {
-    openSessionModal();
-  }, 50);
-}
-/*************************************************
- * BLOC 18 — QUESTION SUIVANTE
- *************************************************/
-
-if (nextBtn) {
-  nextBtn.onclick = () => {
-    nextQuestion();
-  };
-}
-/*************************************************
- * BLOC 19 — LABEL EXERCICE
- *************************************************/
-
-function getExerciseLabel(mode) {
-  switch (mode) {
-    case "classic": return "Classique";
-    case "qcm": return "QCM";
-    case "learning": return "Apprentissage";
-    case "exam": return "Examen";
-    case "puzzle": return "Puzzle";
-    case "flashcards": return "Flashcards";
-    default: return "Exercice";
-  }
-}
-/*************************************************
- * BLOC 20 — NAVIGATION
- *************************************************/
-
-// =====================
-// CHANGER DE QUESTION
-// =====================
-
-function nextQuestion() {
-  // reset
-  resetUIForQuestion();
-
-  // si on a fini les questions
-  if (currentIndex >= totalQuestions) {
-    endGame();
-    return;
-  }
-
-  // nouvelle question
-  currentIndex++;
-
-  // update du compteur
-  questionCtr.textContent = `Question ${currentIndex} / ${totalQuestions}`;
-
-  // chargement de la question
-  loadQuestion();
-}
-
-// =====================
-// RESET QUESTION UI
-// =====================
 
 function resetUIForQuestion() {
   btnGroup.innerHTML = "";
@@ -1223,872 +325,12 @@ function resetUIForQuestion() {
 }
 
 // =====================
-// CHARGER LA QUESTION
+// QUESTION SUIVANTE
 // =====================
-
-function loadQuestion() {
-  // Logique pour charger la question
-  let v;
-  if (gameMode === "learning" && learningQueue.length > 0) {
-    v = learningQueue.shift();
-  } else {
-    v = VERBS[Math.floor(Math.random() * VERBS.length)];
-  }
-
-  currentVerb = v;
-  wordEl.textContent = v.inf;
-
-  // Affichage en fonction du mode de jeu
-  if (gameMode === "classic" || gameMode === "exam" || gameMode === "duel") {
-    loadClassicQuestion();
-  } else if (gameMode === "qcm") {
-    loadQcmQuestion();
-  } else if (gameMode === "learning") {
-    loadLearningQuestion();
-  } else if (gameMode === "puzzle") {
-    loadPuzzleQuestion(); // ← version corrigée iPad
-  } else if (gameMode === "flashcards") {
-    loadFlashcardQuestion();
-  }
-}
-/*************************************************
- * BLOC 21 — CHARGER LA QUESTION CLASSIC
- *************************************************/
-
-// =====================
-// CHARGER QUESTION CLASSIC
-// =====================
-
-function loadClassicQuestion() {
-  const v = currentVerb;
-  const options = generateOptions(v);
-  currentQuestion = { verb: v, options };
-
-  stepLabel.textContent = "Choisis la bonne combinaison (past + past participle).";
-
-  options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-past">${opt.past}</span> / <span class="form-part">${opt.part}</span>`;
-    btn.onclick = () => checkClassic(opt);
-    btnGroup.appendChild(btn);
-  });
-}
-/*************************************************
- * BLOC 22 — CHARGER LA QUESTION QCM
- *************************************************/
-
-// =====================
-// CHARGER QUESTION QCM
-// =====================
-
-function loadQcmQuestion() {
-  const v = currentVerb;
-  currentQuestion = {
-    verb: v,
-    step: "past",
-    chosenPast: null,
-    pastCorrect: false
-  };
-
-  stepLabel.textContent = "Étape 1 : choisis le prétérit.";
-  btnGroup.innerHTML = "";
-
-  const pasts = shuffle([
-    v.past,
-    generateFakePast(v),
-    generateFakePast(v)
-  ]);
-
-  pasts.forEach(p => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-past">${p}</span>`;
-    btn.onclick = () => checkQcmPast(p);
-    btnGroup.appendChild(btn);
-  });
-}
-
-function checkQcmPast(p) {
-  const q = currentQuestion;
-  q.chosenPast = p;
-  q.pastCorrect = (p === q.verb.past);
-
-  stepLabel.textContent = "Étape 2 : choisis le participe passé.";
-  btnGroup.innerHTML = "";
-
-  const parts = shuffle([
-    q.verb.part,
-    generateFakePart(q.verb),
-    generateFakePart(q.verb)
-  ]);
-
-  parts.forEach(pp => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-part">${pp}</span>`;
-    btn.onclick = () => checkQcmPart(pp);
-    btnGroup.appendChild(btn);
-  });
-}
-
-function checkQcmPart(pp) {
-  const q = currentQuestion;
-  const correct = q.pastCorrect && (pp === q.verb.part);
-
-  registerResult(correct, q.verb, true, false);
-
-  feedbackEl.innerHTML = correct
-    ? `<span style="color:#22c55e;">✔ Correct</span>`
-    : `❌ Faux<br>Bonne réponse : <span class="form-past">${q.verb.past}</span> / <span class="form-part">${q.verb.part}</span>`;
-
-  nextBtn.style.display = "inline-block";
-}
-/*************************************************
- * BLOC 23 — CHARGER LA QUESTION DANS LE MODE APPRENTISSAGE
- *************************************************/
-
-// =====================
-// CHARGER QUESTION MODE APPRENTISSAGE
-// =====================
-
-function loadLearningQuestion() {
-  const v = currentVerb;
-  const options = generateOptions(v);
-  currentQuestion = { verb: v, options };
-
-  stepLabel.textContent = "Mode apprentissage : revois ce verbe.";
-
-  options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-past">${opt.past}</span> / <span class="form-part">${opt.part}</span>`;
-    btn.onclick = () => checkLearning(opt);
-    btnGroup.appendChild(btn);
-  });
-}
-
-function checkLearning(opt) {
-  const v = currentQuestion.verb;
-  registerResult(opt.correct, v, true, false);
-
-  feedbackEl.innerHTML = opt.correct
-    ? `<span style="color:#22c55e;">✔ Correct</span>`
-    : `❌ Faux<br>Bonne réponse : <span class="form-past">${v.past}</span> / <span class="form-part">${v.part}</span>`;
-
-  nextBtn.style.display = "inline-block";
-}
-/*************************************************
- * BLOC 24 — CHARGER LA QUESTION DANS LE MODE PUZZLE
- *************************************************/
-
-// =====================
-// CHARGER QUESTION MODE PUZZLE
-// =====================
-
-function loadPuzzleQuestion() {
-  const v = currentVerb;
-  stepLabel.textContent = "Clique sur une forme puis sur la bonne case.";
-
-  puzzleArea.innerHTML = "";
-  feedbackEl.innerHTML = "";
-
-  let selectedValue = null;
-
-  const forms = shuffle([v.inf, v.past, v.part]);
-
-  const zone = document.createElement("div");
-  zone.className = "puzzle-zone";
-
-  const rows = [
-    { label: "Infinitif", key: "inf" },
-    { label: "Prétérit", key: "past" },
-    { label: "Participe", key: "part" }
-  ];
-
-  rows.forEach(r => {
-    const row = document.createElement("div");
-    row.className = "puzzle-row";
-
-    const lab = document.createElement("div");
-    lab.className = "slot-label";
-    lab.textContent = r.label;
-
-    const slot = document.createElement("div");
-    slot.className = "drop-slot";
-    slot.dataset.target = r.key;
-
-    slot.onclick = () => {
-      if (!selectedValue) return;
-      slot.textContent = selectedValue;
-      slot.dataset.value = selectedValue;
-
-      selectedValue = null;
-      document
-        .querySelectorAll(".drag-item")
-        .forEach(i => i.classList.remove("selected"));
-    };
-
-    row.appendChild(lab);
-    row.appendChild(slot);
-    zone.appendChild(row);
-  });
-
-  const bank = document.createElement("div");
-  bank.className = "drag-bank";
-
-  forms.forEach(f => {
-    const item = document.createElement("div");
-    item.className = "drag-item";
-    item.textContent = f;
-
-    item.onclick = () => {
-      selectedValue = f;
-      document
-        .querySelectorAll(".drag-item")
-        .forEach(i => i.classList.remove("selected"));
-      item.classList.add("selected");
-    };
-
-    bank.appendChild(item);
-  });
-
-  puzzleArea.appendChild(zone);
-  puzzleArea.appendChild(bank);
-
-  const btn = document.createElement("button");
-  btn.className = "primary-btn";
-  btn.style.marginTop = "12px";
-  btn.textContent = "Vérifier";
-  btn.onclick = checkPuzzle;
-  puzzleArea.appendChild(btn);
-}
-
-function checkPuzzle() {
-  const slots = puzzleArea.querySelectorAll(".drop-slot");
-  let ok = true;
-
-  slots.forEach(slot => {
-    const target = slot.dataset.target;
-    const value = slot.dataset.value;
-    if (!value || value !== currentVerb[target]) {
-      ok = false;
-    }
-  });
-
-  registerResult(ok, currentVerb, true, false);
-
-  feedbackEl.innerHTML = ok
-    ? `<span style="color:#22c55e;">✔ Tout est correct !</span>`
-    : `❌ Il y a des erreurs.<br>
-       Bonne réponse : ${currentVerb.inf} /
-       <span class="form-past">${currentVerb.past}</span> /
-       <span class="form-part">${currentVerb.part}</span>`;
-
-  nextBtn.style.display = "inline-block";
-}
-/*************************************************
- * BLOC 25 — CHARGER LA QUESTION DANS LE MODE FLASHCARDS
- *************************************************/
-
-// =====================
-// CHARGER QUESTION MODE FLASHCARDS
-// =====================
-
-function loadFlashcardQuestion() {
-  const v = currentVerb;
-  currentQuestion = { verb: v };
-
-  stepLabel.textContent =
-    "Mode flashcards : essaie de te souvenir des formes, puis affiche la réponse.";
-
-  btnGroup.innerHTML = "";
-  feedbackEl.innerHTML = "";
-
-  const revealBtn = document.createElement("button");
-  revealBtn.className = "primary-btn";
-  revealBtn.textContent = "Afficher la réponse";
-  revealBtn.onclick = showFlashcardAnswer;
-  btnGroup.appendChild(revealBtn);
-}
-
-function showFlashcardAnswer() {
-  const v = currentQuestion.verb;
-
-  feedbackEl.innerHTML = `
-    <div class="flashcard-answer">
-      <strong>${v.inf}</strong><br>
-      Past : <span class="form-past">${v.past}</span><br>
-      Participe : <span class="form-part">${v.part}</span><br>
-      <span style="opacity:0.85;">${v.fr || ""}</span>
-    </div>
-  `;
-
-  btnGroup.innerHTML = "";
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "flashcard-buttons";
-
-  const knewBtn = document.createElement("button");
-  knewBtn.className = "primary-btn";
-  knewBtn.textContent = "Je savais ✅";
-  knewBtn.onclick = () => validateFlashcard(true);
-
-  const didntBtn = document.createElement("button");
-  didntBtn.className = "secondary-btn";
-  didntBtn.textContent = "Je ne savais pas ❌";
-  didntBtn.onclick = () => validateFlashcard(false);
-
-  wrapper.appendChild(knewBtn);
-  wrapper.appendChild(didntBtn);
-  btnGroup.appendChild(wrapper);
-}
-
-function validateFlashcard(knew) {
-  if (knew) {
-    registerResult(true, currentVerb, false, false);
-    feedbackEl.innerHTML +=
-      `<div style="margin-top:6px;color:#22c55e;">Bien joué !</div>`;
-  } else {
-    registerResult(false, currentVerb, true, false);
-    feedbackEl.innerHTML +=
-      `<div style="margin-top:6px;color:#f97316;">
-        Pas grave, tu le reverras dans les autres modes.
-       </div>`;
-  }
-  nextBtn.style.display = "inline-block";
-}
-/*************************************************
- * BLOC 26 — TIMER EXAMEN
- *************************************************/
-
-// =====================
-// TIMER EXAMEN
-// =====================
-
-function startExamTimer() {
-  stopExamTimer();
-  updateTimerDisplay();
-
-  examTimer = setInterval(() => {
-    examTimeLeft--;
-    if (examTimeLeft <= 0) {
-      examTimeLeft = 0;
-      updateTimerDisplay();
-      stopExamTimer();
-      endGame(true);
-    } else {
-      updateTimerDisplay();
-    }
-  }, 1000);
-}
-
-function stopExamTimer() {
-  if (examTimer) {
-    clearInterval(examTimer);
-    examTimer = null;
-  }
-}
-
-function updateTimerDisplay() {
-  const m = Math.floor(examTimeLeft / 60);
-  const s = examTimeLeft % 60;
-  timerEl.textContent =
-    `⏱ Temps restant : ${m}m ${s < 10 ? "0" + s : s}s`;
-}
-/*************************************************
- * BLOC 27 — FIN DE PARTIE & BILAN
- *************************************************/
-
-// =====================
-// FIN DE PARTIE
-// =====================
-
-function endGame(fromTimer = false) {
-  stopExamTimer();
-
-  // afficher écran résultat
-  hideAllScreens();
-  result.classList.remove("hidden");
-
-  // calcul total réel
-  let total = totalQuestions;
-  if (
-    gameMode === "learning" ||
-    gameMode === "puzzle" ||
-    gameMode === "flashcards"
-  ) {
-    total = currentIndex;
-  }
-
-  // score texte
-  if (gameMode === "exam") {
-    const note = total > 0 ? Math.round((score / total) * 20) : 0;
-    scoreText.textContent = `Tu as obtenu ${score}/${total} (${note}/20)`;
-  } else {
-    scoreText.textContent = `Tu as obtenu ${score}/${total}`;
-  }
-
-  // sauvegarde ScanProf (hors duel)
-  if (gameMode !== "duel") {
-    sessionResults.push({
-      exo: getExerciseLabel(gameMode),
-      resultat: `${score}/${total}`
-    });
-
-    localStorage.setItem(
-      "ivt-session-results",
-      JSON.stringify(sessionResults)
-    );
-  }
-
-  // erreurs
-  if (mistakes.length === 0) {
-    mistakeList.innerHTML = "<p>Aucune erreur 🎉</p>";
-  } else {
-    mistakeList.innerHTML = mistakes.map(v =>
-      `<p>• ${v.inf} → <span class="form-past">${v.past}</span> /
-       <span class="form-part">${v.part}</span></p>`
-    ).join("");
-  }
-
-  // ouvrir la modale AU-DESSUS (1 seule fois)
-  setTimeout(() => {
-    openSessionModal();
-  }, 50);
-}
-/*************************************************
- * BLOC 28 — QUESTION SUIVANTE
- *************************************************/
-
-if (nextBtn) {
-  nextBtn.onclick = () => {
-    nextQuestion();
-  };
-}
-/*************************************************
- * BLOC 29 — LABEL EXERCICE
- *************************************************/
-
-function getExerciseLabel(mode) {
-  switch (mode) {
-    case "classic": return "Classique";
-    case "qcm": return "QCM";
-    case "learning": return "Apprentissage";
-    case "exam": return "Examen";
-    case "puzzle": return "Puzzle";
-    case "flashcards": return "Flashcards";
-    default: return "Exercice";
-  }
-}
-/*************************************************
- * BLOC 30 — GESTION DES QUESTIONS
- *************************************************/
-
-function nextQuestion() {
-  if (currentIndex >= totalQuestions) {
-    endGame();
-    return;
-  }
-
-  currentIndex++;
-  questionCtr.textContent = `Question ${currentIndex} / ${totalQuestions}`;
-
-  let v;
-  if (gameMode === "learning" && learningQueue.length > 0) {
-    v = learningQueue.shift();
-  } else {
-    v = VERBS[Math.floor(Math.random() * VERBS.length)];
-  }
-
-  currentVerb = v;
-  wordEl.textContent = v.inf;
-
-  if (gameMode === "classic") {
-    loadClassicQuestion();
-  } else if (gameMode === "qcm") {
-    loadQcmQuestion();
-  } else if (gameMode === "learning") {
-    loadLearningQuestion();
-  } else if (gameMode === "puzzle") {
-    loadPuzzleQuestion();
-  } else if (gameMode === "flashcards") {
-    loadFlashcardQuestion();
-  }
-}
-/*************************************************
- * BLOC 31 — GÉNÉRATION DES QUESTIONS
- *************************************************/
-
-function loadClassicQuestion() {
-  const v = currentVerb;
-  const options = generateOptions(v);
-  currentQuestion = { verb: v, options };
-
-  stepLabel.textContent = "Choisis la bonne combinaison (past + past participle).";
-
-  options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-past">${opt.past}</span> / <span class="form-part">${opt.part}</span>`;
-    btn.onclick = () => checkClassic(opt);
-    btnGroup.appendChild(btn);
-  });
-}
-
-function loadQcmQuestion() {
-  const v = currentVerb;
-  currentQuestion = {
-    verb: v,
-    step: "past",
-    chosenPast: null,
-    pastCorrect: false
-  };
-
-  stepLabel.textContent = "Étape 1 : choisis le prétérit.";
-  btnGroup.innerHTML = "";
-
-  const pasts = shuffle([
-    v.past,
-    generateFakePast(v),
-    generateFakePast(v)
-  ]);
-
-  pasts.forEach(p => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-past">${p}</span>`;
-    btn.onclick = () => checkQcmPast(p);
-    btnGroup.appendChild(btn);
-  });
-}
-
-function loadLearningQuestion() {
-  const v = currentVerb;
-  const options = generateOptions(v);
-  currentQuestion = { verb: v, options };
-
-  stepLabel.textContent = "Mode apprentissage : revois ce verbe.";
-
-  options.forEach(opt => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-past">${opt.past}</span> / <span class="form-part">${opt.part}</span>`;
-    btn.onclick = () => checkLearning(opt);
-    btnGroup.appendChild(btn);
-  });
-}
-
-function loadPuzzleQuestion() {
-  const v = currentVerb;
-  stepLabel.textContent = "Clique sur une forme puis sur la bonne case.";
-
-  puzzleArea.innerHTML = "";
-  feedbackEl.innerHTML = "";
-
-  let selectedValue = null;
-
-  const forms = shuffle([v.inf, v.past, v.part]);
-
-  const zone = document.createElement("div");
-  zone.className = "puzzle-zone";
-
-  const rows = [
-    { label: "Infinitif", key: "inf" },
-    { label: "Prétérit", key: "past" },
-    { label: "Participe", key: "part" }
-  ];
-
-  rows.forEach(r => {
-    const row = document.createElement("div");
-    row.className = "puzzle-row";
-
-    const lab = document.createElement("div");
-    lab.className = "slot-label";
-    lab.textContent = r.label;
-
-    const slot = document.createElement("div");
-    slot.className = "drop-slot";
-    slot.dataset.target = r.key;
-
-    slot.onclick = () => {
-      if (!selectedValue) return;
-      slot.textContent = selectedValue;
-      slot.dataset.value = selectedValue;
-
-      selectedValue = null;
-      document
-        .querySelectorAll(".drag-item")
-        .forEach(i => i.classList.remove("selected"));
-    };
-
-    row.appendChild(lab);
-    row.appendChild(slot);
-    zone.appendChild(row);
-  });
-
-  const bank = document.createElement("div");
-  bank.className = "drag-bank";
-
-  forms.forEach(f => {
-    const item = document.createElement("div");
-    item.className = "drag-item";
-    item.textContent = f;
-
-    item.onclick = () => {
-      selectedValue = f;
-      document
-        .querySelectorAll(".drag-item")
-        .forEach(i => i.classList.remove("selected"));
-      item.classList.add("selected");
-    };
-
-    bank.appendChild(item);
-  });
-
-  puzzleArea.appendChild(zone);
-  puzzleArea.appendChild(bank);
-
-  const btn = document.createElement("button");
-  btn.className = "primary-btn";
-  btn.style.marginTop = "12px";
-  btn.textContent = "Vérifier";
-  btn.onclick = checkPuzzle;
-  puzzleArea.appendChild(btn);
-}
-
-function loadFlashcardQuestion() {
-  const v = currentVerb;
-  currentQuestion = { verb: v };
-
-  stepLabel.textContent =
-    "Mode flashcards : essaie de te souvenir des formes, puis affiche la réponse.";
-
-  btnGroup.innerHTML = "";
-  feedbackEl.innerHTML = "";
-
-  const revealBtn = document.createElement("button");
-  revealBtn.className = "primary-btn";
-  revealBtn.textContent = "Afficher la réponse";
-  revealBtn.onclick = showFlashcardAnswer;
-  btnGroup.appendChild(revealBtn);
-}
-/*************************************************
- * BLOC 32 — VALIDATION DES RÉPONSES
- *************************************************/
-
-function checkClassic(opt) {
-  const v = currentQuestion.verb;
-  const correct = opt.correct;
-
-  registerResult(correct, v, true, false);
-
-  feedbackEl.innerHTML = correct
-    ? `<span style="color:#22c55e;">✔ Correct</span>`
-    : `❌ Faux<br>Bonne réponse : <span class="form-past">${v.past}</span> / <span class="form-part">${v.part}</span>`;
-
-  nextBtn.style.display = "inline-block";
-}
-
-function checkQcmPast(p) {
-  const q = currentQuestion;
-  q.chosenPast = p;
-  q.pastCorrect = (p === q.verb.past);
-
-  stepLabel.textContent = "Étape 2 : choisis le participe passé.";
-  btnGroup.innerHTML = "";
-
-  const parts = shuffle([
-    q.verb.part,
-    generateFakePart(q.verb),
-    generateFakePart(q.verb)
-  ]);
-
-  parts.forEach(pp => {
-    const btn = document.createElement("button");
-    btn.className = "answer-btn";
-    btn.innerHTML = `<span class="form-part">${pp}</span>`;
-    btn.onclick = () => checkQcmPart(pp);
-    btnGroup.appendChild(btn);
-  });
-}
-
-function checkQcmPart(pp) {
-  const q = currentQuestion;
-  const correct = q.pastCorrect && (pp === q.verb.part);
-
-  registerResult(correct, q.verb, true, false);
-
-  feedbackEl.innerHTML = correct
-    ? `<span style="color:#22c55e;">✔ Correct</span>`
-    : `❌ Faux<br>Bonne réponse : <span class="form-past">${q.verb.past}</span> / <span class="form-part">${q.verb.part}</span>`;
-
-  nextBtn.style.display = "inline-block";
-}
-
-function checkLearning(opt) {
-  const v = currentQuestion.verb;
-  registerResult(opt.correct, v, true, false);
-
-  feedbackEl.innerHTML = opt.correct
-    ? `<span style="color:#22c55e;">✔ Correct</span>`
-    : `❌ Faux<br>Bonne réponse : <span class="form-past">${v.past}</span> / <span class="form-part">${v.part}</span>`;
-
-  nextBtn.style.display = "inline-block";
-}
-
-function checkPuzzle() {
-  const slots = puzzleArea.querySelectorAll(".drop-slot");
-  let ok = true;
-
-  slots.forEach(slot => {
-    const target = slot.dataset.target;
-    const value = slot.dataset.value;
-    if (!value || value !== currentVerb[target]) {
-      ok = false;
-    }
-  });
-
-  registerResult(ok, currentVerb, true, false);
-
-  feedbackEl.innerHTML = ok
-    ? `<span style="color:#22c55e;">✔ Tout est correct !</span>`
-    : `❌ Il y a des erreurs.<br>
-       Bonne réponse : ${currentVerb.inf} /
-       <span class="form-past">${currentVerb.past}</span> /
-       <span class="form-part">${currentVerb.part}</span>`;
-
-  nextBtn.style.display = "inline-block";
-}
-
-function showFlashcardAnswer() {
-  const v = currentQuestion.verb;
-
-  feedbackEl.innerHTML = `
-    <div class="flashcard-answer">
-      <strong>${v.inf}</strong><br>
-      Past : <span class="form-past">${v.past}</span><br>
-      Participe : <span class="form-part">${v.part}</span><br>
-      <span style="opacity:0.85;">${v.fr || ""}</span>
-    </div>
-  `;
-
-  btnGroup.innerHTML = "";
-
-  const wrapper = document.createElement("div");
-  wrapper.className = "flashcard-buttons";
-
-  const knewBtn = document.createElement("button");
-  knewBtn.className = "primary-btn";
-  knewBtn.textContent = "Je savais ✅";
-  knewBtn.onclick = () => validateFlashcard(true);
-
-  const didntBtn = document.createElement("button");
-  didntBtn.className = "secondary-btn";
-  didntBtn.textContent = "Je ne savais pas ❌";
-  didntBtn.onclick = () => validateFlashcard(false);
-
-  wrapper.appendChild(knewBtn);
-  wrapper.appendChild(didntBtn);
-  btnGroup.appendChild(wrapper);
-}
-
-function validateFlashcard(knew) {
-  if (knew) {
-    registerResult(true, currentVerb, false, false);
-    feedbackEl.innerHTML +=
-      `<div style="margin-top:6px;color:#22c55e;">Bien joué !</div>`;
-  } else {
-    registerResult(false, currentVerb, true, false);
-    feedbackEl.innerHTML +=
-      `<div style="margin-top:6px;color:#f97316;">
-        Pas grave, tu le reverras dans les autres modes.
-       </div>`;
-  }
-  nextBtn.style.display = "inline-block";
-}
-/*************************************************
- * BLOC 33 — RÉINITIALISATION DES RÉSULTATS
- *************************************************/
-
-function resetResults() {
-  score = 0;
-  mistakes = [];
-  learningQueue = [];
-  currentIndex = 0;
-  translationVisible = false;
-  combo = 0;
-  maxCombo = 0;
-  duelPlayer = 1;
-  duelScores = { 1: 0, 2: 0 };
-  duelInfo.textContent = "";
-  duelPlayersEl.classList.add("hidden");
-  player1Card.classList.remove("duel-active");
-  player2Card.classList.remove("duel-active");
-  player1ScoreEl.textContent = "0";
-  player2ScoreEl.textContent = "0";
-  feedbackEl.innerHTML = "";
-  nextBtn.style.display = "none";
-  timerEl.textContent = "";
-  stepLabel.textContent = "";
-}
-/*************************************************
- * BLOC 34 — DÉMARRAGE DU JEU
- *************************************************/
-
-async function startGame() {
-  // Initialisation du jeu
-  if (!verbsLoaded) {
-    await loadVerbs();
-  }
-
-  // Réinitialisation des résultats
-  resetResults();
-
-  // Mise à jour de l'interface pour démarrer le jeu
-  menu.classList.add("hidden");
-  result.classList.add("hidden");
-  game.classList.remove("hidden");
-
-  // Choix du mode de jeu
-  gameTitle.textContent =
-    gameMode === "classic" ? "Mode classique" :
-    gameMode === "qcm" ? "Mode QCM" :
-    gameMode === "learning" ? "Mode apprentissage" :
-    gameMode === "exam" ? "Mode examen" :
-    gameMode === "puzzle" ? "Mode puzzle" :
-    gameMode === "duel" ? "Mode duel" :
-    "Mode flashcards";
-
-  // Gérer le mode examen
-  if (gameMode === "exam") {
-    examTimeLeft = totalQuestions * 20;
-    startExamTimer();
-    toggleTransBtn.style.display = "none";
-  } else {
-    stopExamTimer();
-    timerEl.textContent = "";
-    toggleTransBtn.style.display = "inline-block";
-  }
-
-  // Gérer le mode duel
-  if (gameMode === "duel") {
-    duelInfo.textContent = "Joueur 1 commence.";
-    duelPlayersEl.classList.remove("hidden");
-    updateDuelVisual();
-  }
-
-  // Charger la première question
-  nextQuestion();
-}
-/*************************************************
- * BLOC 35 — QUESTION SUIVANTE
- *************************************************/
 
 function nextQuestion() {
   resetUIForQuestion();
 
-  // Si la limite de questions est atteinte, fin du jeu
   if (
     gameMode !== "learning" &&
     gameMode !== "puzzle" &&
@@ -2113,7 +355,6 @@ function nextQuestion() {
   currentIndex++;
   questionCtr.textContent = `Question ${currentIndex} / ${totalQuestions}`;
 
-  // Sélectionner un verbe au hasard ou de la queue d'apprentissage
   let v;
   if (gameMode === "learning" && learningQueue.length > 0) {
     v = learningQueue.shift();
@@ -2124,7 +365,6 @@ function nextQuestion() {
   currentVerb = v;
   wordEl.textContent = v.inf;
 
-  // Charger la question selon le mode de jeu
   if (gameMode === "classic" || gameMode === "exam" || gameMode === "duel") {
     loadClassicQuestion();
   } else if (gameMode === "qcm") {
@@ -2137,9 +377,139 @@ function nextQuestion() {
     loadFlashcardQuestion();
   }
 }
-/*************************************************
- * BLOC 36 — AFFICHAGE QUESTION (CLASSIC/EXAM/DUEL)
- *************************************************/
+// =====================
+// UTILITAIRES
+// =====================
+
+function shuffle(arr) {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
+function reverseString(s) {
+  return s.split("").reverse().join("");
+}
+
+function pickDifferent(list, correct) {
+  const filtered = list.filter(w => w && w !== correct);
+  if (filtered.length === 0) return correct;
+  return filtered[Math.floor(Math.random() * filtered.length)];
+}
+
+function generateFakePast(v) {
+  const base = v.inf;
+  const variants = [
+    base + "ed",
+    base + "d",
+    v.past.replace(/a/g, "e"),
+    v.past.replace(/e/g, "a"),
+    v.past + "ed",
+    v.part,
+    base + "t",
+    base.substring(0, base.length - 1) + "ed",
+    reverseString(v.past)
+  ];
+  return pickDifferent(variants, v.past);
+}
+
+function generateFakePart(v) {
+  const base = v.inf;
+  const variants = [
+    base + "ed",
+    base + "en",
+    v.part.replace(/e/g, "a"),
+    v.part.replace(/a/g, "e"),
+    v.past + "en",
+    "un" + v.part,
+    v.part + "ed",
+    reverseString(v.part)
+  ];
+  return pickDifferent(variants, v.part);
+}
+
+function mutateForm(form) {
+  if (!form || form.length < 2) return form;
+  const idx = Math.floor(Math.random() * (form.length - 1));
+  const chars = form.split("");
+  const action = Math.floor(Math.random() * 3);
+
+  if (action === 0) {
+    const tmp = chars[idx];
+    chars[idx] = chars[idx + 1];
+    chars[idx + 1] = tmp;
+  } else if (action === 1) {
+    chars.splice(idx, 0, chars[idx]);
+  } else {
+    const vowels = "aeiouy";
+    if (vowels.includes(chars[idx].toLowerCase())) {
+      chars[idx] = vowels[Math.floor(Math.random() * vowels.length)];
+    } else {
+      chars[idx] = String.fromCharCode(chars[idx].charCodeAt(0) + 1);
+    }
+  }
+
+  const candidate = chars.join("");
+  if (candidate === form) return form + "ed";
+  return candidate;
+}
+
+function findSimilarVerbs(v, count) {
+  const base = v.inf.toLowerCase();
+  const pref2 = base.slice(0, 2);
+  const suff2 = base.slice(-2);
+
+  let sims = VERBS.filter(x => {
+    if (x.inf === v.inf) return false;
+    const inf = x.inf.toLowerCase();
+    return inf.startsWith(pref2) || inf.endsWith(suff2);
+  });
+
+  if (sims.length < count) {
+    const extras = VERBS.filter(x => x.inf !== v.inf && !sims.includes(x));
+    sims = sims.concat(shuffle(extras).slice(0, count - sims.length));
+  }
+
+  return shuffle(sims).slice(0, count);
+}
+
+// =====================
+// GÉNÉRATION DES OPTIONS (DIFFICULTÉ)
+// =====================
+
+function generateOptions(v) {
+  if (difficultyLevel === 1) {
+    return shuffle([
+      { past: v.past, part: v.part, correct: true },
+      { past: generateFakePast(v), part: generateFakePart(v), correct: false },
+      { past: generateFakePast(v), part: generateFakePart(v), correct: false }
+    ]);
+  }
+
+  if (difficultyLevel === 2) {
+    const similar = findSimilarVerbs(v, 2);
+    const opts = [{ past: v.past, part: v.part, correct: true }];
+
+    similar.forEach(sv => {
+      opts.push({ past: sv.past, part: sv.part, correct: false });
+    });
+
+    while (opts.length < 3) {
+      const r = VERBS[Math.floor(Math.random() * VERBS.length)];
+      if (r.inf !== v.inf) {
+        opts.push({ past: r.past, part: r.part, correct: false });
+      }
+    }
+    return shuffle(opts.slice(0, 3));
+  }
+
+  return shuffle([
+    { past: v.past, part: v.part, correct: true },
+    { past: mutateForm(v.past), part: mutateForm(v.part), correct: false },
+    { past: mutateForm(v.past), part: mutateForm(v.part), correct: false }
+  ]);
+}
+// =====================
+// CLASSIC / EXAM / DUEL
+// =====================
 
 function loadClassicQuestion() {
   const v = currentVerb;
@@ -2148,7 +518,6 @@ function loadClassicQuestion() {
 
   stepLabel.textContent = "Choisis la bonne combinaison (past + past participle).";
 
-  // Créer les boutons pour les choix
   options.forEach(opt => {
     const btn = document.createElement("button");
     btn.className = "answer-btn";
@@ -2158,11 +527,36 @@ function loadClassicQuestion() {
   });
 }
 
+function updateDuelVisual() {
+  player1Card.classList.toggle("duel-active", duelPlayer === 1);
+  player2Card.classList.toggle("duel-active", duelPlayer === 2);
+  player1ScoreEl.textContent = String(duelScores[1]);
+  player2ScoreEl.textContent = String(duelScores[2]);
+}
+
+function registerResult(correct, verb, withLearning = true, isDuel = false) {
+  if (correct) {
+    score++;
+    combo++;
+    if (combo > maxCombo) maxCombo = combo;
+  } else {
+    combo = 0;
+    if (withLearning) {
+      mistakes.push(verb);
+      learningQueue.push(verb);
+    }
+  }
+
+  if (isDuel) {
+    if (correct) duelScores[duelPlayer]++;
+    updateDuelVisual();
+  }
+}
+
 function checkClassic(opt) {
   const v = currentQuestion.verb;
   const correct = opt.correct;
 
-  // Gestion du feedback pour le mode duel
   if (gameMode === "duel") {
     registerResult(correct, v, true, true);
     feedbackEl.innerHTML = correct
@@ -2182,9 +576,10 @@ function checkClassic(opt) {
 
   nextBtn.style.display = "inline-block";
 }
-/*************************************************
- * BLOC 37 — AFFICHAGE QUESTION (QCM)
- *************************************************/
+
+// =====================
+// QCM MODE
+// =====================
 
 function loadQcmQuestion() {
   const v = currentVerb;
@@ -2248,9 +643,10 @@ function checkQcmPart(pp) {
 
   nextBtn.style.display = "inline-block";
 }
-/*************************************************
- * BLOC 38 — AFFICHAGE QUESTION (LEARNING)
- *************************************************/
+
+// =====================
+// LEARNING MODE
+// =====================
 
 function loadLearningQuestion() {
   const v = currentVerb;
@@ -2278,9 +674,9 @@ function checkLearning(opt) {
 
   nextBtn.style.display = "inline-block";
 }
-/*************************************************
- * BLOC 39 — PUZZLE MODE (complément final)
- *************************************************/
+// =====================
+// PUZZLE MODE (clic → clic, iPad OK)
+// =====================
 
 function loadPuzzleQuestion() {
   const v = currentVerb;
@@ -2383,9 +779,9 @@ function checkPuzzle() {
 
   nextBtn.style.display = "inline-block";
 }
-/*************************************************
- * BLOC 40 — FLASHCARDS MODE
- *************************************************/
+// =====================
+// FLASHCARDS MODE
+// =====================
 
 function loadFlashcardQuestion() {
   const v = currentVerb;
@@ -2449,4 +845,363 @@ function validateFlashcard(knew) {
        </div>`;
   }
   nextBtn.style.display = "inline-block";
+}
+// =====================
+// EXAM TIMER
+// =====================
+
+function startExamTimer() {
+  stopExamTimer();
+  updateTimerDisplay();
+
+  examTimer = setInterval(() => {
+    examTimeLeft--;
+    if (examTimeLeft <= 0) {
+      examTimeLeft = 0;
+      updateTimerDisplay();
+      stopExamTimer();
+      endGame(true);
+    } else {
+      updateTimerDisplay();
+    }
+  }, 1000);
+}
+
+function stopExamTimer() {
+  if (examTimer) {
+    clearInterval(examTimer);
+    examTimer = null;
+  }
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(examTimeLeft / 60);
+  const s = examTimeLeft % 60;
+  timerEl.textContent =
+    `⏱ Temps restant : ${m}m ${s < 10 ? "0" + s : s}s`;
+}
+// =====================
+// FIN DE PARTIE & BILAN
+// =====================
+
+function endGame(fromTimer = false) {
+  stopExamTimer();
+  game.classList.add("hidden");
+  result.classList.remove("hidden");
+
+  let total = totalQuestions;
+  if (
+    gameMode === "learning" ||
+    gameMode === "puzzle" ||
+    gameMode === "flashcards"
+  ) {
+    total = currentIndex;
+  }
+
+  if (gameMode === "duel") {
+    scoreText.textContent =
+      `Duel terminé — Joueur 1 : ${duelScores[1]} | Joueur 2 : ${duelScores[2]}`;
+  } else if (gameMode === "exam") {
+    const note = total > 0 ? Math.round((score / total) * 20) : 0;
+    scoreText.textContent =
+      `Tu as obtenu ${score}/${total}, soit ${note}/20.`;
+  } else {
+    scoreText.textContent =
+      `Tu as obtenu ${score} bonne(s) réponse(s) sur ${total}.`;
+  }
+
+// Enregistrer l'exercice dans la séance (hors duel)
+if (gameMode !== "duel") {
+  const entry = {
+    exo: getExerciseLabel(gameMode),
+    resultat: `${score}/${total}`
+  };
+
+  sessionResults.push(entry);
+
+  // 💾 Sauvegarde pour cumul ScanProf (un seul QR par élève)
+  localStorage.setItem(
+    "ivt-session-results",
+    JSON.stringify(sessionResults)
+  );
+}
+
+
+  // Badges
+  badgeRow.innerHTML = "";
+  const ratio = total > 0 ? score / total : 0;
+  const badges = [];
+
+  if (ratio === 1 && total > 0) badges.push("🌟 Zéro faute !");
+  else if (ratio >= 0.8) badges.push("🏅 Très bon niveau");
+  else if (ratio >= 0.5) badges.push("👍 Bon début, continue !");
+
+  if (gameMode === "exam" && fromTimer)
+    badges.push("⏱ Fin d'examen par temps écoulé");
+  if (gameMode === "puzzle" && ratio >= 0.8)
+    badges.push("🧩 Maître du puzzle");
+  if (gameMode === "flashcards" && ratio >= 0.8)
+    badges.push("🎴 Pro des flashcards");
+
+  if (maxCombo >= 5)
+    badges.push("🔥 Série de " + maxCombo + " bonnes réponses");
+
+  badges.forEach(b => {
+    const span = document.createElement("span");
+    span.className = "badge";
+    span.textContent = b;
+    badgeRow.appendChild(span);
+  });
+
+    // Résumé
+  summaryEl.innerHTML = `
+    <p><strong>Précision globale :</strong> ${(ratio * 100).toFixed(0)}%</p>
+    <p><strong>Meilleure série :</strong> ${maxCombo}</p>
+  `;
+
+  if (mistakes.length === 0) {
+  mistakeList.innerHTML = "<p>Aucune erreur 🎉</p>";
+} else {
+  mistakeList.innerHTML = mistakes.map(v =>
+    `<p>• ${v.inf} → <span class="form-past">${v.past}</span> /
+     <span class="form-part">${v.part}</span> (${v.fr || ""})</p>`
+  ).join("");
+}
+
+// 👉 FIN D’EXERCICE :
+// 1. On laisse l'écran résultat visible
+// 2. On ouvre la modale AU-DESSUS
+setTimeout(() => {
+  openSessionModal();
+}, 0);
+}
+
+// =====================
+// REDÉMARRER
+// =====================
+
+function restart() {
+  result.classList.add("hidden");
+  goToMenu();
+}
+
+// =====================
+// LABEL EXERCICE
+// =====================
+
+function getExerciseLabel(mode) {
+  switch (mode) {
+    case "classic": return "Classic / Classique";
+    case "qcm": return "QCM (2 étapes)";
+    case "learning": return "Learning / Apprentissage";
+    case "exam": return "Exam / Examen";
+    case "puzzle": return "Puzzle";
+    case "flashcards": return "Flashcards";
+    default: return mode || "Inconnu";
+  }
+}
+
+// =====================
+// IDENTITÉ ÉLÈVE
+// =====================
+
+function ensureIdentity() {
+  // ❌ Ne JAMAIS ouvrir l'identité si la modale de fin est visible
+  if (!identityModal || !sessionModal) return;
+  if (!sessionModal.classList.contains("hidden")) return;
+
+  // ✅ Si déjà renseigné, on ne fait rien
+  if (studentIdentity.firstName && studentIdentity.classLabel) return;
+
+  identityFirstNameInput.value = "";
+  identityClassInput.value = "";
+
+  identityModal.classList.remove("hidden");
+  identityModal.setAttribute("aria-hidden", "false");
+  identityFirstNameInput.focus();
+}
+
+function saveIdentity() {
+  const fn = identityFirstNameInput.value.trim();
+  const cl = identityClassInput.value.trim();
+
+  if (!fn || !cl) {
+    alert("Merci de renseigner ton prénom et ta classe.");
+    return;
+  }
+
+  studentIdentity.firstName = fn;
+  studentIdentity.classLabel = cl;
+  localStorage.setItem("ivt-student", JSON.stringify(studentIdentity));
+
+  identityModal.classList.add("hidden");
+  identityModal.setAttribute("aria-hidden", "true");
+}
+
+
+// =====================
+// MODALE FIN DE SÉANCE (FIX iPad FINAL)
+// =====================
+
+function closeSessionModal() {
+  if (!sessionModal) return;
+  sessionModal.classList.add("hidden");
+  sessionModal.setAttribute("aria-hidden", "true");
+}
+
+function openSessionModal() {
+  if (!sessionModal) return;
+
+  // 🔒 fermer identité si ouverte
+  if (identityModal) {
+    identityModal.classList.add("hidden");
+    identityModal.setAttribute("aria-hidden", "true");
+  }
+
+  // 🔒 masquer le QR tant que non terminé
+  if (qrSectionEl) {
+    qrSectionEl.classList.add("hidden");
+  }
+
+  // 🔒 s'assurer que RESULT reste visible en arrière-plan
+  result.classList.remove("hidden");
+
+  sessionModal.classList.remove("hidden");
+  sessionModal.setAttribute("aria-hidden", "false");
+
+  // 📱 iPad Safari : focus obligatoire
+  const firstBtn = sessionModal.querySelector("button");
+  if (firstBtn) firstBtn.focus();
+}
+
+// ➜ CONTINUER UN AUTRE EXERCICE
+function handleContinueSession(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  closeSessionModal();
+
+  // nettoyage écrans
+  result.classList.add("hidden");
+  game.classList.add("hidden");
+  home.classList.add("hidden");
+  menu.classList.remove("hidden");
+
+  // reset UX (aucune sélection active)
+  clearModeSelection();
+  clearDifficultySelection();
+  clearQuestionSelection();
+}
+
+// ➜ TERMINER ET AFFICHER LE QR
+function handleFinishSession(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  closeSessionModal();
+
+  buildSessionQR();
+
+  if (qrSectionEl) {
+    qrSectionEl.classList.remove("hidden");
+
+    // scroll fiable iPad
+    setTimeout(() => {
+      qrSectionEl.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }, 120);
+  }
+}
+
+// ⚠️ iPad Safari : click + touchend OBLIGATOIRES
+if (sessionContinueBtn) {
+  sessionContinueBtn.addEventListener("click", handleContinueSession);
+  sessionContinueBtn.addEventListener("touchend", handleContinueSession, { passive: false });
+}
+
+if (sessionQrBtn) {
+  sessionQrBtn.addEventListener("click", handleFinishSession);
+  sessionQrBtn.addEventListener("touchend", handleFinishSession, { passive: false });
+}
+
+// =====================
+// QR DE SÉANCE
+// =====================
+
+function normaliseClassLabel(raw) {
+  if (!raw) return "";
+  let s = raw.toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  s = s.replace(/\s+/g, "");
+  const match = s.match(/(\d+)([A-Z])/);
+  return match ? match[1] + match[2] : s;
+}
+
+function buildSessionQR() {
+  if (!studentIdentity.firstName || !studentIdentity.classLabel) {
+    ensureIdentity();
+    return;
+  }
+
+  if (!sessionResults.length) {
+    alert("Aucun exercice réalisé pour cette séance.");
+    return;
+  }
+
+  // ✅ PAYLOAD SCANPROF COMPATIBLE (cumulatif, sans doublon)
+  const payload = {
+    prenom: studentIdentity.firstName.toUpperCase(),
+    classe: normaliseClassLabel(studentIdentity.classLabel),
+    exercices: sessionResults.map(r => ({
+      exo: r.exo,
+      resultat: r.resultat
+    }))
+  };
+
+  const json = JSON.stringify(payload);
+
+  qrBoxEl.innerHTML = "";
+  qrSectionEl.classList.remove("hidden");
+
+  // ✅ QR local (MDM / iPad OK, aucune lib externe)
+  try {
+    new QRCode(qrBoxEl, {
+      text: json,
+      width: 256,
+      height: 256,
+      correctLevel: QRCode.CorrectLevel.H
+    });
+  } catch (e) {
+    console.error(e);
+    const pre = document.createElement("pre");
+    pre.textContent = json;
+    qrBoxEl.appendChild(pre);
+  }
+}
+
+if (downloadQrBtn) {
+  downloadQrBtn.addEventListener("click", () => {
+    // 🔍 La lib peut générer <canvas> OU <img>
+    const canvas = qrBoxEl.querySelector("canvas");
+    const img = qrBoxEl.querySelector("img");
+
+    if (!canvas && !img) {
+      alert("Le QR n'est pas encore généré.");
+      return;
+    }
+
+    const link = document.createElement("a");
+
+    if (canvas) {
+      link.href = canvas.toDataURL("image/png");
+    } else {
+      link.href = img.src;
+    }
+
+    link.download = `IrregularVerbs_QR_${studentIdentity.firstName || "ELEVE"}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
 }
