@@ -1000,48 +1000,22 @@ function getExerciseLabel(mode) {
     default: return mode || "Inconnu";
   }
 }
-
 // =====================
-// IDENTITÉ ÉLÈVE
+// HELPERS MODALES (anti superposition iPad)
 // =====================
 
-function ensureIdentity() {
-  // ❌ Ne JAMAIS ouvrir l'identité si la modale de fin est visible
-  if (!identityModal || !sessionModal) return;
-  if (!sessionModal.classList.contains("hidden")) return;
-
-  // ✅ Si déjà renseigné, on ne fait rien
-  if (studentIdentity.firstName && studentIdentity.classLabel) return;
-
-  identityFirstNameInput.value = "";
-  identityClassInput.value = "";
-
-  identityModal.classList.remove("hidden");
-  identityModal.setAttribute("aria-hidden", "false");
-  identityFirstNameInput.focus();
-}
-
-function saveIdentity() {
-  const fn = identityFirstNameInput.value.trim();
-  const cl = identityClassInput.value.trim();
-
-  if (!fn || !cl) {
-    alert("Merci de renseigner ton prénom et ta classe.");
-    return;
-  }
-
-  studentIdentity.firstName = fn;
-  studentIdentity.classLabel = cl;
-  localStorage.setItem("ivt-student", JSON.stringify(studentIdentity));
-
+function closeIdentityModal() {
+  if (!identityModal) return;
   identityModal.classList.add("hidden");
   identityModal.setAttribute("aria-hidden", "true");
 }
 
-
-// =====================
-// MODALE FIN DE SÉANCE (FIX iPad FINAL)
-// =====================
+function openIdentityModal() {
+  if (!identityModal) return;
+  identityModal.classList.remove("hidden");
+  identityModal.setAttribute("aria-hidden", "false");
+  if (identityFirstNameInput) identityFirstNameInput.focus();
+}
 
 function closeSessionModal() {
   if (!sessionModal) return;
@@ -1052,48 +1026,132 @@ function closeSessionModal() {
 function openSessionModal() {
   if (!sessionModal) return;
 
-  // 🔒 fermer identité si ouverte
-  if (identityModal) {
-    identityModal.classList.add("hidden");
-    identityModal.setAttribute("aria-hidden", "true");
-  }
+  // ferme l'identité si elle traîne
+  closeIdentityModal();
 
-  // 🔒 masquer le QR tant que non terminé
-  if (qrSectionEl) {
-    qrSectionEl.classList.add("hidden");
-  }
-
-  // 🔒 s'assurer que RESULT reste visible en arrière-plan
-  result.classList.remove("hidden");
-
+  // IMPORTANT : la modale doit toujours passer devant
   sessionModal.classList.remove("hidden");
   sessionModal.setAttribute("aria-hidden", "false");
 
-  // 📱 iPad Safari : focus obligatoire
+  // Focus iPad pour rendre les boutons "actifs"
   const firstBtn = sessionModal.querySelector("button");
   if (firstBtn) firstBtn.focus();
 }
+// =====================
+// NAVIGATION (FIX modales)
+// =====================
 
-// ➜ CONTINUER UN AUTRE EXERCICE
+function goToMenu() {
+  // fermer TOUTES les modales
+  closeSessionModal();
+  closeIdentityModal();
+
+  // masquer QR si affiché
+  if (qrSectionEl) qrSectionEl.classList.add("hidden");
+
+  home.classList.add("hidden");
+  result.classList.add("hidden");
+  game.classList.add("hidden");
+  menu.classList.remove("hidden");
+
+  // reset UX
+  clearModeSelection();
+  clearDifficultySelection();
+  clearQuestionSelection();
+
+  // demander identité seulement sur le menu
+  ensureIdentity();
+}
+
+function backHome() {
+  stopExamTimer();
+
+  closeSessionModal();
+  closeIdentityModal();
+  if (qrSectionEl) qrSectionEl.classList.add("hidden");
+
+  menu.classList.add("hidden");
+  game.classList.add("hidden");
+  result.classList.add("hidden");
+  home.classList.remove("hidden");
+
+  clearModeSelection();
+  clearDifficultySelection();
+  clearQuestionSelection();
+}
+
+// =====================
+// NOUVELLE SÉANCE (reset total)
+// =====================
+
+function restart() {
+  // ferme TOUT (sinon "Fin d'exercice" reste)
+  closeSessionModal();
+  closeIdentityModal();
+
+  // reset séance ScanProf
+  sessionResults = [];
+  localStorage.removeItem("ivt-session-results");
+
+  // reset écran
+  if (qrBoxEl) qrBoxEl.innerHTML = "";
+  if (qrSectionEl) qrSectionEl.classList.add("hidden");
+
+  result.classList.add("hidden");
+  goToMenu();
+}
+// =====================
+// IDENTITÉ ÉLÈVE (popup propre)
+// =====================
+
+function ensureIdentity() {
+  // si session modal ouverte : ne jamais ouvrir l'identité
+  if (sessionModal && !sessionModal.classList.contains("hidden")) return;
+
+  if (studentIdentity.firstName && studentIdentity.classLabel) return;
+
+  if (identityFirstNameInput) identityFirstNameInput.value = "";
+  if (identityClassInput) identityClassInput.value = "";
+  openIdentityModal();
+}
+
+function saveIdentity() {
+  const fn = (identityFirstNameInput?.value || "").trim();
+  const cl = (identityClassInput?.value || "").trim();
+
+  if (!fn || !cl) {
+    alert("Merci de renseigner ton prénom et ta classe.");
+    return;
+  }
+
+  studentIdentity.firstName = fn;
+  studentIdentity.classLabel = cl;
+  localStorage.setItem("ivt-student", JSON.stringify(studentIdentity));
+
+  closeIdentityModal();
+}
+
+// =====================
+// MODALE FIN DE SÉANCE (click + touchend iPad)
+// =====================
+
 function handleContinueSession(e) {
   e.preventDefault();
   e.stopPropagation();
 
   closeSessionModal();
 
-  // nettoyage écrans
+  // IMPORTANT : revenir menu propre
   result.classList.add("hidden");
   game.classList.add("hidden");
   home.classList.add("hidden");
   menu.classList.remove("hidden");
 
-  // reset UX (aucune sélection active)
   clearModeSelection();
   clearDifficultySelection();
   clearQuestionSelection();
 }
 
-// ➜ TERMINER ET AFFICHER LE QR
 function handleFinishSession(e) {
   e.preventDefault();
   e.stopPropagation();
@@ -1104,30 +1162,25 @@ function handleFinishSession(e) {
 
   if (qrSectionEl) {
     qrSectionEl.classList.remove("hidden");
-
-    // scroll fiable iPad
     setTimeout(() => {
-      qrSectionEl.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    }, 120);
+      qrSectionEl.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
   }
 }
 
-// ⚠️ iPad Safari : click + touchend OBLIGATOIRES
+// iPad Safari: click parfois ignoré → on double
 if (sessionContinueBtn) {
-  sessionContinueBtn.addEventListener("click", handleContinueSession);
+  sessionContinueBtn.onclick = handleContinueSession;
   sessionContinueBtn.addEventListener("touchend", handleContinueSession, { passive: false });
 }
 
 if (sessionQrBtn) {
-  sessionQrBtn.addEventListener("click", handleFinishSession);
+  sessionQrBtn.onclick = handleFinishSession;
   sessionQrBtn.addEventListener("touchend", handleFinishSession, { passive: false });
 }
 
 // =====================
-// QR DE SÉANCE
+// QR DE SÉANCE (ScanProf)
 // =====================
 
 function normaliseClassLabel(raw) {
@@ -1140,6 +1193,7 @@ function normaliseClassLabel(raw) {
 
 function buildSessionQR() {
   if (!studentIdentity.firstName || !studentIdentity.classLabel) {
+    // on force l'identité avant le QR
     ensureIdentity();
     return;
   }
@@ -1149,23 +1203,24 @@ function buildSessionQR() {
     return;
   }
 
-  // ✅ PAYLOAD SCANPROF COMPATIBLE (cumulatif, sans doublon)
   const payload = {
     prenom: studentIdentity.firstName.toUpperCase(),
     classe: normaliseClassLabel(studentIdentity.classLabel),
-    exercices: sessionResults.map(r => ({
-      exo: r.exo,
-      resultat: r.resultat
-    }))
+    exercices: sessionResults.map(r => ({ exo: r.exo, resultat: r.resultat }))
   };
 
   const json = JSON.stringify(payload);
 
-  qrBoxEl.innerHTML = "";
-  qrSectionEl.classList.remove("hidden");
+  if (qrBoxEl) qrBoxEl.innerHTML = "";
+  if (qrSectionEl) qrSectionEl.classList.remove("hidden");
 
-  // ✅ QR local (MDM / iPad OK, aucune lib externe)
   try {
+    // vérif sécurité : lib bien chargée
+    if (typeof QRCode === "undefined") {
+      alert("QRCode library non chargée (qrcode.min.js).");
+      return;
+    }
+
     new QRCode(qrBoxEl, {
       text: json,
       width: 256,
@@ -1180,11 +1235,11 @@ function buildSessionQR() {
   }
 }
 
+// download QR
 if (downloadQrBtn) {
   downloadQrBtn.addEventListener("click", () => {
-    // 🔍 La lib peut générer <canvas> OU <img>
-    const canvas = qrBoxEl.querySelector("canvas");
-    const img = qrBoxEl.querySelector("img");
+    const canvas = qrBoxEl?.querySelector("canvas");
+    const img = qrBoxEl?.querySelector("img");
 
     if (!canvas && !img) {
       alert("Le QR n'est pas encore généré.");
@@ -1192,13 +1247,7 @@ if (downloadQrBtn) {
     }
 
     const link = document.createElement("a");
-
-    if (canvas) {
-      link.href = canvas.toDataURL("image/png");
-    } else {
-      link.href = img.src;
-    }
-
+    link.href = canvas ? canvas.toDataURL("image/png") : img.src;
     link.download = `IrregularVerbs_QR_${studentIdentity.firstName || "ELEVE"}.png`;
     document.body.appendChild(link);
     link.click();
