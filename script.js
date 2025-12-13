@@ -1029,13 +1029,15 @@ function saveIdentity() {
 function openSessionModal() {
   if (!sessionModal) return;
 
-  // ✅ On ouvre la modale SANS générer le QR
+  // Ouverture simple de la modale de choix
   sessionModal.classList.remove("hidden");
 }
 
 if (sessionContinueBtn) {
   sessionContinueBtn.addEventListener("click", () => {
-    // ➜ Continuer : retour au menu, pas de QR
+    // ➜ CONTINUER
+    // On garde la séance (sessionResults)
+    // Retour au menu pour refaire un exo
     sessionModal.classList.add("hidden");
     result.classList.add("hidden");
     goToMenu();
@@ -1044,11 +1046,23 @@ if (sessionContinueBtn) {
 
 if (sessionQrBtn) {
   sessionQrBtn.addEventListener("click", () => {
-    // ➜ Terminer : génération du QR FINAL
+    // ➜ TERMINER
+    // Génération du QR FINAL cumulatif
     sessionModal.classList.add("hidden");
+
     buildSessionQR();
+
+    // Affichage garanti du QR
+    qrSectionEl.classList.remove("hidden");
+
+    // Scroll automatique vers le QR (scan direct iPad)
+    qrSectionEl.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
   });
 }
+
 
 // =====================
 // QR DE SÉANCE
