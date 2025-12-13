@@ -1052,13 +1052,22 @@ function closeSessionModal() {
 function openSessionModal() {
   if (!sessionModal) return;
 
-  // sécurité : masquer le QR si affiché avant
-  if (qrSectionEl) qrSectionEl.classList.add("hidden");
+  // 🔒 Sécurité : fermer la modale identité si elle est ouverte
+  if (identityModal) {
+    identityModal.classList.add("hidden");
+    identityModal.setAttribute("aria-hidden", "true");
+  }
 
+  // 🔒 Sécurité : masquer le QR s'il était affiché
+  if (qrSectionEl) {
+    qrSectionEl.classList.add("hidden");
+  }
+
+  // ✅ Ouvrir la modale de fin d'exercice
   sessionModal.classList.remove("hidden");
   sessionModal.setAttribute("aria-hidden", "false");
 
-  // iPad Safari : forcer le focus pour activer la modale
+  // 📱 iPad Safari : focus pour activer les boutons
   const firstBtn = sessionModal.querySelector("button");
   if (firstBtn) firstBtn.focus();
 }
