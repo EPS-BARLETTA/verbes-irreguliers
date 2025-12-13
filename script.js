@@ -151,6 +151,11 @@ function goToMenu() {
   game.classList.add("hidden");
   menu.classList.remove("hidden");
 
+  // 🔄 Reset UX : rien n'est présélectionné
+  clearModeSelection();
+  clearDifficultySelection();
+  clearQuestionSelection();
+
   ensureIdentity();
 }
 
@@ -160,7 +165,11 @@ function backHome() {
   game.classList.add("hidden");
   result.classList.add("hidden");
   home.classList.remove("hidden");
+
+  // 🔄 Reset aussi en retour accueil
   clearModeSelection();
+  clearDifficultySelection();
+  clearQuestionSelection();
 }
 
 // =====================
