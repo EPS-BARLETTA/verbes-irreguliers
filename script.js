@@ -1061,12 +1061,13 @@ function buildSessionQR() {
     return;
   }
 
+  // ✅ PAYLOAD SCANPROF COMPATIBLE (cumulatif, sans doublon)
   const payload = {
     prenom: studentIdentity.firstName.toUpperCase(),
     classe: normaliseClassLabel(studentIdentity.classLabel),
     exercices: sessionResults.map(r => ({
-      exo: r.label,
-      resultat: `${r.score}/${r.total}`
+      exo: r.exo,
+      resultat: r.resultat
     }))
   };
 
@@ -1075,7 +1076,7 @@ function buildSessionQR() {
   qrBoxEl.innerHTML = "";
   qrSectionEl.classList.remove("hidden");
 
-  // ✅ API COMPATIBLE AVEC LA LIBRAIRIE QR LOCALE (MDM OK)
+  // ✅ QR local (MDM / iPad OK, aucune lib externe)
   try {
     new QRCode(qrBoxEl, {
       text: json,
@@ -1093,7 +1094,7 @@ function buildSessionQR() {
 
 if (downloadQrBtn) {
   downloadQrBtn.addEventListener("click", () => {
-    // 🔍 La lib peut générer <img> OU <canvas>
+    // 🔍 La lib peut générer <canvas> OU <img>
     const canvas = qrBoxEl.querySelector("canvas");
     const img = qrBoxEl.querySelector("img");
 
