@@ -1040,7 +1040,7 @@ function saveIdentity() {
 
 
 // =====================
-// MODALE FIN DE SÉANCE (FIX iPad)
+// MODALE FIN DE SÉANCE (FIX iPad FINAL)
 // =====================
 
 function closeSessionModal() {
@@ -1052,66 +1052,79 @@ function closeSessionModal() {
 function openSessionModal() {
   if (!sessionModal) return;
 
-  // 🔒 Sécurité : fermer la modale identité si elle est ouverte
+  // 🔒 fermer identité si ouverte
   if (identityModal) {
     identityModal.classList.add("hidden");
     identityModal.setAttribute("aria-hidden", "true");
   }
 
-  // 🔒 Sécurité : masquer le QR s'il était affiché
+  // 🔒 masquer le QR tant que non terminé
   if (qrSectionEl) {
     qrSectionEl.classList.add("hidden");
   }
 
-  // ✅ Ouvrir la modale de fin d'exercice
+  // 🔒 s'assurer que RESULT reste visible en arrière-plan
+  result.classList.remove("hidden");
+
   sessionModal.classList.remove("hidden");
   sessionModal.setAttribute("aria-hidden", "false");
 
-  // 📱 iPad Safari : focus pour activer les boutons
+  // 📱 iPad Safari : focus obligatoire
   const firstBtn = sessionModal.querySelector("button");
   if (firstBtn) firstBtn.focus();
 }
 
-// ➜ CONTINUER
+// ➜ CONTINUER UN AUTRE EXERCICE
+function handleContinueSession(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  closeSessionModal();
+
+  // nettoyage écrans
+  result.classList.add("hidden");
+  game.classList.add("hidden");
+  home.classList.add("hidden");
+  menu.classList.remove("hidden");
+
+  // reset UX (aucune sélection active)
+  clearModeSelection();
+  clearDifficultySelection();
+  clearQuestionSelection();
+}
+
+// ➜ TERMINER ET AFFICHER LE QR
+function handleFinishSession(e) {
+  e.preventDefault();
+  e.stopPropagation();
+
+  closeSessionModal();
+
+  buildSessionQR();
+
+  if (qrSectionEl) {
+    qrSectionEl.classList.remove("hidden");
+
+    // scroll fiable iPad
+    setTimeout(() => {
+      qrSectionEl.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }, 120);
+  }
+}
+
+// ⚠️ iPad Safari : click + touchend OBLIGATOIRES
 if (sessionContinueBtn) {
-  sessionContinueBtn.onclick = (e) => {
-    e.preventDefault();
-
-    closeSessionModal();
-
-    // nettoyage écran
-    result.classList.add("hidden");
-    game.classList.add("hidden");
-    menu.classList.remove("hidden");
-
-    // reset des sélections
-    clearModeSelection();
-    clearDifficultySelection();
-    clearQuestionSelection();
-  };
+  sessionContinueBtn.addEventListener("click", handleContinueSession);
+  sessionContinueBtn.addEventListener("touchend", handleContinueSession, { passive: false });
 }
 
-// ➜ TERMINER
 if (sessionQrBtn) {
-  sessionQrBtn.onclick = (e) => {
-    e.preventDefault();
-
-    closeSessionModal();
-
-    buildSessionQR();
-
-    if (qrSectionEl) {
-      qrSectionEl.classList.remove("hidden");
-      setTimeout(() => {
-        qrSectionEl.scrollIntoView({
-          behavior: "smooth",
-          block: "start"
-        });
-      }, 50);
-    }
-  };
+  sessionQrBtn.addEventListener("click", handleFinishSession);
+  sessionQrBtn.addEventListener("touchend", handleFinishSession, { passive: false });
 }
-
 
 // =====================
 // QR DE SÉANCE
