@@ -960,16 +960,20 @@ if (gameMode !== "duel") {
   `;
 
   if (mistakes.length === 0) {
-    mistakeList.innerHTML = "<p>Aucune erreur 🎉</p>";
-  } else {
-    mistakeList.innerHTML = mistakes.map(v =>
-      `<p>• ${v.inf} → <span class="form-past">${v.past}</span> /
-       <span class="form-part">${v.part}</span> (${v.fr || ""})</p>`
-    ).join("");
-  }
+  mistakeList.innerHTML = "<p>Aucune erreur 🎉</p>";
+} else {
+  mistakeList.innerHTML = mistakes.map(v =>
+    `<p>• ${v.inf} → <span class="form-past">${v.past}</span> /
+     <span class="form-part">${v.part}</span> (${v.fr || ""})</p>`
+  ).join("");
+}
 
-  // 👉 FIN D’EXERCICE : on ouvre la modale de choix
+// 👉 FIN D’EXERCICE :
+// 1. On laisse l'écran résultat visible
+// 2. On ouvre la modale AU-DESSUS
+setTimeout(() => {
   openSessionModal();
+}, 0);
 }
 
 // =====================
