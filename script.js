@@ -28,6 +28,17 @@ let examTimeLeft = 0;
 // identité & suivi de séance
 let studentIdentity = { firstName: "", classLabel: "" };
 let sessionResults = [];
+
+// 🔁 Restauration de la séance (ScanProf cumulatif)
+const storedResults = localStorage.getItem("ivt-session-results");
+if (storedResults) {
+  try {
+    sessionResults = JSON.parse(storedResults) || [];
+  } catch (e) {
+    sessionResults = [];
+  }
+}
+
 // DOM refs
 const home = document.getElementById("home");
 const menu = document.getElementById("menu");
@@ -58,6 +69,7 @@ const mistakeList = document.getElementById("mistake-list");
 const summaryEl = document.getElementById("summary");
 const audioVerbBtn = document.getElementById("audio-verb-btn");
 const themeToggleBtn = document.getElementById("theme-toggle");
+
 
 // QR section
 const qrSectionEl = document.getElementById("qr-section");
