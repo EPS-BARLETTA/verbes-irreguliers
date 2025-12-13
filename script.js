@@ -1006,11 +1006,16 @@ function getExerciseLabel(mode) {
 // =====================
 
 function ensureIdentity() {
+  // ❌ Ne jamais ouvrir l'identité si la modale de fin de séance est visible
+  if (!identityModal || !sessionModal) return;
+  if (!sessionModal.classList.contains("hidden")) return;
+
   if (studentIdentity.firstName && studentIdentity.classLabel) return;
 
   identityFirstNameInput.value = "";
   identityClassInput.value = "";
   identityModal.classList.remove("hidden");
+  identityModal.setAttribute("aria-hidden", "false");
   identityFirstNameInput.focus();
 }
 
@@ -1026,10 +1031,12 @@ function saveIdentity() {
   studentIdentity.firstName = fn;
   studentIdentity.classLabel = cl;
   localStorage.setItem("ivt-student", JSON.stringify(studentIdentity));
+
   identityModal.classList.add("hidden");
+  identityModal.setAttribute("aria-hidden", "true");
 
   // ⚠️ On NE RÉINITIALISE PAS sessionResults
-  // Le QR sera cumulatif pour ScanProf
+  // Le QR reste cumulatif pour ScanProf
   qrBoxEl.innerHTML = "";
   qrSectionEl.classList.add("hidden");
 }
