@@ -1002,18 +1002,20 @@ function getExerciseLabel(mode) {
 }
 
 // =====================
-// IDENTITÉ ÉLÈVE (STABLE)
+// IDENTITÉ ÉLÈVE
 // =====================
 
 function ensureIdentity() {
-  // ❌ Ne jamais ouvrir l'identité si la modale de fin de séance est visible
+  // ❌ Ne JAMAIS ouvrir l'identité si la modale de fin est visible
   if (!identityModal || !sessionModal) return;
   if (!sessionModal.classList.contains("hidden")) return;
 
+  // ✅ Si déjà renseigné, on ne fait rien
   if (studentIdentity.firstName && studentIdentity.classLabel) return;
 
   identityFirstNameInput.value = "";
   identityClassInput.value = "";
+
   identityModal.classList.remove("hidden");
   identityModal.setAttribute("aria-hidden", "false");
   identityFirstNameInput.focus();
@@ -1034,11 +1036,6 @@ function saveIdentity() {
 
   identityModal.classList.add("hidden");
   identityModal.setAttribute("aria-hidden", "true");
-
-  // ❗ IMPORTANT
-  // On NE TOUCHE PLUS au QR ici
-  // La génération et l'affichage du QR sont gérés UNIQUEMENT
-  // par la modale de fin de séance
 }
 
 
