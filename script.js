@@ -1,5 +1,6 @@
 let VERBS = [];
 let verbsLoaded = false;
+const APP_NAME = "Irregular Verbs Trainer PRO";
 
 // état global
 let gameMode = null;
@@ -26,14 +27,24 @@ let examTimer = null;
 let examTimeLeft = 0;
 
 // identité & suivi de séance
-let studentIdentity = { firstName: "", classLabel: "" };
+let studentIdentity = {
+  firstName: "",
+  lastName: "",
+  classLabel: ""
+};
 let sessionResults = [];
+let lastScanProfPayload = "";
+let pendingMenuNavigation = false;
+let pendingQrGeneration = false;
 
 // 🔁 Restauration de la séance (ScanProf cumulatif)
 const storedResults = localStorage.getItem("ivt-session-results");
 if (storedResults) {
   try {
-    sessionResults = JSON.parse(storedResults) || [];
+    const parsed = JSON.parse(storedResults) || [];
+    sessionResults = parsed
+      .map(normalizeSessionEntry)
+      .filter(Boolean);
   } catch (e) {
     sessionResults = [];
   }
@@ -67,6 +78,9 @@ const scoreText = document.getElementById("score-text");
 const badgeRow = document.getElementById("badge-row");
 const mistakeList = document.getElementById("mistake-list");
 const summaryEl = document.getElementById("summary");
+const sessionHistoryEl = document.getElementById("session-history");
+const resultContinueBtn = document.getElementById("result-continue-btn");
+const resultFinishBtn = document.getElementById("result-finish-btn");
 const audioVerbBtn = document.getElementById("audio-verb-btn");
 const themeToggleBtn = document.getElementById("theme-toggle");
 
@@ -75,15 +89,19 @@ const themeToggleBtn = document.getElementById("theme-toggle");
 const qrSectionEl = document.getElementById("qr-section");
 const qrBoxEl = document.getElementById("qrBox");
 const downloadQrBtn = document.getElementById("download-qr-btn");
+const qrModal = document.getElementById("qr-modal");
+const closeQrModalBtn = document.getElementById("close-qr-modal");
 
 // Modals
 const identityModal = document.getElementById("identity-modal");
 const identityFirstNameInput = document.getElementById("student-firstname");
+const identityLastNameInput = document.getElementById("student-lastname");
 const identityClassInput = document.getElementById("student-class");
-
 const sessionModal = document.getElementById("session-modal");
 const sessionContinueBtn = document.getElementById("session-continue-btn");
 const sessionQrBtn = document.getElementById("session-qr-btn");
+
+renderSessionHistory();
 // =====================
 // THEME HANDLING
 // =====================
@@ -101,8 +119,12 @@ const sessionQrBtn = document.getElementById("session-qr-btn");
   if (storedIdentity) {
     try {
       const obj = JSON.parse(storedIdentity);
-      if (obj && obj.firstName && obj.classLabel) {
-        studentIdentity = obj;
+      if (obj && typeof obj === "object") {
+        studentIdentity = {
+          firstName: obj.firstName || "",
+          lastName: obj.lastName || "",
+          classLabel: obj.classLabel || ""
+        };
       }
     } catch (e) {
       console.warn("Cannot parse stored identity", e);
@@ -126,10 +148,12 @@ function applyTheme(theme) {
 // AUDIO : prononciation
 // =====================
 
-audioVerbBtn.addEventListener("click", () => {
-  if (!currentVerb) return;
-  speakText(currentVerb.inf);
-});
+if (audioVerbBtn) {
+  audioVerbBtn.addEventListener("click", () => {
+    if (!currentVerb) return;
+    speakText(currentVerb.inf);
+  });
+}
 
 function speakText(text) {
   if (!("speechSynthesis" in window)) {
@@ -146,6 +170,15 @@ function speakText(text) {
 // =====================
 
 function goToMenu() {
+  if (!studentIdentity.firstName || !studentIdentity.classLabel) {
+    pendingMenuNavigation = true;
+    openIdentityModal();
+    return;
+  }
+  showMenuScreen();
+}
+
+function showMenuScreen() {
   home.classList.add("hidden");
   result.classList.add("hidden");
   game.classList.add("hidden");
@@ -155,8 +188,6 @@ function goToMenu() {
   clearModeSelection();
   clearDifficultySelection();
   clearQuestionSelection();
-
-  ensureIdentity();
 }
 
 function backHome() {
@@ -229,12 +260,23 @@ function selectQuestionCount(n, el) {
 // =====================
 
 async function loadVerbs() {
+  if (verbsLoaded) return;
+
   try {
     const res = await fetch("verbs.json");
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     VERBS = await res.json();
     verbsLoaded = Array.isArray(VERBS) && VERBS.length > 0;
   } catch (e) {
-    console.error(e);
+    console.warn("Fetch verbs.json failed, fallback to local data.", e);
+  }
+
+  if (!verbsLoaded && Array.isArray(window.VERBS_FALLBACK)) {
+    VERBS = window.VERBS_FALLBACK.slice();
+    verbsLoaded = VERBS.length > 0;
+  }
+
+  if (!verbsLoaded) {
     wordEl.textContent = "Erreur de chargement des verbes.";
   }
 }
@@ -910,21 +952,22 @@ function endGame(fromTimer = false) {
       `Tu as obtenu ${score} bonne(s) réponse(s) sur ${total}.`;
   }
 
-// Enregistrer l'exercice dans la séance (hors duel)
-if (gameMode !== "duel") {
-  const entry = {
-    exo: getExerciseLabel(gameMode),
-    resultat: `${score}/${total}`
-  };
+  // Enregistrer l'exercice dans la séance (hors duel)
+  if (gameMode !== "duel") {
+    const entry = {
+      id: Date.now(),
+      exo: getExerciseLabel(gameMode),
+      resultat: `${score}/${total}`,
+      score,
+      total,
+      difficulty: difficultyLevel,
+      questionCount: total
+    };
 
-  sessionResults.push(entry);
-
-  // 💾 Sauvegarde pour cumul ScanProf (un seul QR par élève)
-  localStorage.setItem(
-    "ivt-session-results",
-    JSON.stringify(sessionResults)
-  );
-}
+    sessionResults.push(entry);
+    persistSessionResults();
+    renderSessionHistory();
+  }
 
 
   // Badges
@@ -968,12 +1011,6 @@ if (gameMode !== "duel") {
   ).join("");
 }
 
-// 👉 FIN D’EXERCICE :
-// 1. On laisse l'écran résultat visible
-// 2. On ouvre la modale AU-DESSUS
-setTimeout(() => {
-  openSessionModal();
-}, 0);
 }
 
 // =====================
@@ -981,6 +1018,19 @@ setTimeout(() => {
 // =====================
 
 function restart() {
+  sessionResults = [];
+  persistSessionResults();
+  lastScanProfPayload = "";
+  renderSessionHistory();
+  closeQrModal();
+  pendingMenuNavigation = false;
+  pendingQrGeneration = false;
+  studentIdentity = {
+    firstName: "",
+    lastName: "",
+    classLabel: ""
+  };
+  localStorage.removeItem("ivt-student");
   result.classList.add("hidden");
   goToMenu();
 }
@@ -1006,36 +1056,133 @@ function getExerciseLabel(mode) {
 // =====================
 
 function ensureIdentity() {
-  // ❌ Ne JAMAIS ouvrir l'identité si la modale de fin est visible
-  if (!identityModal || !sessionModal) return;
-  if (!sessionModal.classList.contains("hidden")) return;
+  if (studentIdentity.firstName && studentIdentity.classLabel) return true;
+  openIdentityModal();
+  return false;
+}
 
-  // ✅ Si déjà renseigné, on ne fait rien
-  if (studentIdentity.firstName && studentIdentity.classLabel) return;
+function openIdentityModal() {
+  if (!identityModal) return;
 
-  identityFirstNameInput.value = "";
-  identityClassInput.value = "";
+  if (sessionModal && !sessionModal.classList.contains("hidden")) {
+    closeSessionModal();
+  }
 
+  if (identityFirstNameInput) {
+    identityFirstNameInput.value = studentIdentity.firstName || "";
+  }
+  if (identityLastNameInput) {
+    identityLastNameInput.value = studentIdentity.lastName || "";
+  }
+  if (identityClassInput) {
+    identityClassInput.value = studentIdentity.classLabel || "";
+  }
   identityModal.classList.remove("hidden");
   identityModal.setAttribute("aria-hidden", "false");
-  identityFirstNameInput.focus();
+  setTimeout(() => {
+    if (identityFirstNameInput) {
+      identityFirstNameInput.focus();
+    }
+  }, 50);
 }
 
 function saveIdentity() {
-  const fn = identityFirstNameInput.value.trim();
-  const cl = identityClassInput.value.trim();
+  const fn = identityFirstNameInput ? identityFirstNameInput.value.trim() : "";
+  const ln = identityLastNameInput ? identityLastNameInput.value.trim() : "";
+  const cl = identityClassInput ? identityClassInput.value.trim() : "";
 
   if (!fn || !cl) {
     alert("Merci de renseigner ton prénom et ta classe.");
     return;
   }
 
-  studentIdentity.firstName = fn;
-  studentIdentity.classLabel = cl;
+  studentIdentity = {
+    firstName: fn,
+    lastName: ln,
+    classLabel: cl
+  };
   localStorage.setItem("ivt-student", JSON.stringify(studentIdentity));
+  renderSessionHistory();
 
   identityModal.classList.add("hidden");
   identityModal.setAttribute("aria-hidden", "true");
+
+  if (pendingMenuNavigation) {
+    pendingMenuNavigation = false;
+    showMenuScreen();
+  }
+
+  if (pendingQrGeneration) {
+    pendingQrGeneration = false;
+    buildSessionQR();
+  }
+}
+
+// =====================
+// SÉANCE EN COURS
+// =====================
+
+function persistSessionResults() {
+  if (!sessionResults.length) {
+    localStorage.removeItem("ivt-session-results");
+    return;
+  }
+  localStorage.setItem("ivt-session-results", JSON.stringify(sessionResults));
+}
+
+function renderSessionHistory() {
+  if (!sessionHistoryEl) return;
+
+  if (!sessionResults.length) {
+    sessionHistoryEl.innerHTML = `
+      <p><strong>Séance en cours :</strong></p>
+      <p>Aucun exercice enregistré pour l'instant.</p>
+    `;
+    return;
+  }
+
+  const header = `
+    <p><strong>Séance en cours :</strong></p>
+    ${studentIdentity.firstName ? `<p><strong>Prénom :</strong> ${studentIdentity.firstName}</p>` : ""}
+    ${studentIdentity.classLabel ? `<p><strong>Classe :</strong> ${studentIdentity.classLabel}</p>` : ""}
+  `;
+
+  const rows = sessionResults
+    .map((entry, idx) =>
+      `<p>Exo ${idx + 1} (${entry.exo}) : ${entry.resultat}</p>`
+    )
+    .join("");
+
+  sessionHistoryEl.innerHTML = header + rows;
+}
+
+function normalizeSessionEntry(entry) {
+  if (!entry || typeof entry !== "object") return null;
+  const base = {
+    id: entry.id || Date.now() + Math.random(),
+    exo: entry.exo || "Exercice",
+    resultat: entry.resultat || "",
+    score: typeof entry.score === "number" ? entry.score : null,
+    total: typeof entry.total === "number" ? entry.total : null,
+    difficulty: typeof entry.difficulty === "number" ? entry.difficulty : null,
+    questionCount: typeof entry.questionCount === "number" ? entry.questionCount : null
+  };
+
+  const stats = parseResultString(base.resultat);
+  if (base.score === null) base.score = stats.score;
+  if (base.total === null) base.total = stats.total;
+  if (base.questionCount === null) base.questionCount = stats.total;
+
+  return base;
+}
+
+function parseResultString(str) {
+  const match = /(\d+)\s*\/\s*(\d+)/.exec(str || "");
+  if (!match) return { score: 0, total: 0 };
+  return {
+    score: parseInt(match[1], 10) || 0,
+    total: parseInt(match[2], 10) || 0
+  };
 }
 
 
@@ -1059,9 +1206,7 @@ function openSessionModal() {
   }
 
   // 🔒 masquer le QR tant que non terminé
-  if (qrSectionEl) {
-    qrSectionEl.classList.add("hidden");
-  }
+  closeQrModal();
 
   // 🔒 s'assurer que RESULT reste visible en arrière-plan
   result.classList.remove("hidden");
@@ -1080,17 +1225,10 @@ function handleContinueSession(e) {
   e.stopPropagation();
 
   closeSessionModal();
+  closeQrModal();
 
   // nettoyage écrans
-  result.classList.add("hidden");
-  game.classList.add("hidden");
-  home.classList.add("hidden");
-  menu.classList.remove("hidden");
-
-  // reset UX (aucune sélection active)
-  clearModeSelection();
-  clearDifficultySelection();
-  clearQuestionSelection();
+  showMenuScreen();
 }
 
 // ➜ TERMINER ET AFFICHER LE QR
@@ -1101,18 +1239,6 @@ function handleFinishSession(e) {
   closeSessionModal();
 
   buildSessionQR();
-
-  if (qrSectionEl) {
-    qrSectionEl.classList.remove("hidden");
-
-    // scroll fiable iPad
-    setTimeout(() => {
-      qrSectionEl.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-    }, 120);
-  }
 }
 
 // ⚠️ iPad Safari : click + touchend OBLIGATOIRES
@@ -1124,6 +1250,16 @@ if (sessionContinueBtn) {
 if (sessionQrBtn) {
   sessionQrBtn.addEventListener("click", handleFinishSession);
   sessionQrBtn.addEventListener("touchend", handleFinishSession, { passive: false });
+}
+
+if (resultContinueBtn) {
+  resultContinueBtn.addEventListener("click", handleContinueSession);
+  resultContinueBtn.addEventListener("touchend", handleContinueSession, { passive: false });
+}
+
+if (resultFinishBtn) {
+  resultFinishBtn.addEventListener("click", handleFinishSession);
+  resultFinishBtn.addEventListener("touchend", handleFinishSession, { passive: false });
 }
 
 // =====================
@@ -1139,69 +1275,139 @@ function normaliseClassLabel(raw) {
 }
 
 function buildSessionQR() {
-  if (!studentIdentity.firstName || !studentIdentity.classLabel) {
-    ensureIdentity();
+  if (!ensureIdentity()) {
+    pendingQrGeneration = true;
     return;
   }
+  pendingQrGeneration = false;
 
   if (!sessionResults.length) {
     alert("Aucun exercice réalisé pour cette séance.");
     return;
   }
 
-  // ✅ PAYLOAD SCANPROF COMPATIBLE (cumulatif, sans doublon)
+  const payload = buildScanProfPayload();
+  if (!payload || typeof payload !== "object") {
+    alert("Erreur lors de la génération du QR.");
+    return;
+  }
+
+  lastScanProfPayload = renderScanProfQR("qrBox", payload);
+  openQrModal();
+}
+
+function buildScanProfPayload() {
+  const prenom = (studentIdentity.firstName || "").trim();
+  const classeRaw = (studentIdentity.classLabel || "").trim();
+  if (!prenom || !classeRaw) return null;
+
   const payload = {
-    prenom: studentIdentity.firstName.toUpperCase(),
-    classe: normaliseClassLabel(studentIdentity.classLabel),
-    exercices: sessionResults.map(r => ({
-      exo: r.exo,
-      resultat: r.resultat
-    }))
+    prenom,
+    classe: normaliseClassLabel(classeRaw)
   };
 
-  const json = JSON.stringify(payload);
+  sessionResults.forEach((entry, idx) => {
+    payload[`exercice_${idx + 1}`] = formatSessionEntryForQr(entry);
+  });
 
-  qrBoxEl.innerHTML = "";
-  qrSectionEl.classList.remove("hidden");
+  return payload;
+}
 
-  // ✅ QR local (MDM / iPad OK, aucune lib externe)
-  try {
-    new QRCode(qrBoxEl, {
-      text: json,
-      width: 256,
-      height: 256,
-      correctLevel: QRCode.CorrectLevel.H
-    });
-  } catch (e) {
-    console.error(e);
+function formatSessionEntryForQr(entry) {
+  if (!entry) return "";
+  const label = entry.exo || "Exercice";
+  const difficulty = entry.difficulty ? ` N${entry.difficulty}` : "";
+  const result = entry.resultat || `${entry.score || 0}/${entry.total || entry.questionCount || 0}`;
+  return `${label}${difficulty} ${result}`.trim();
+}
+
+function renderScanProfQR(targetId, payload) {
+  const container = document.getElementById(targetId);
+  if (!container) return "";
+
+  const jsonPayload = JSON.stringify(payload);
+  container.innerHTML = "";
+
+  if (typeof QRCode === "function") {
+    try {
+      new QRCode(container, {
+        text: jsonPayload,
+        width: 256,
+        height: 256,
+        correctLevel: QRCode.CorrectLevel
+          ? QRCode.CorrectLevel.H
+          : 1
+      });
+    } catch (e) {
+      console.error("QR generation error", e);
+      const pre = document.createElement("pre");
+      pre.textContent = jsonPayload;
+      container.appendChild(pre);
+    }
+  } else {
     const pre = document.createElement("pre");
-    pre.textContent = json;
-    qrBoxEl.appendChild(pre);
+    pre.textContent = jsonPayload;
+    container.appendChild(pre);
   }
+
+  return jsonPayload;
+}
+
+function downloadScanProfQR(targetId, filename) {
+  const container = document.getElementById(targetId);
+  if (!container) return;
+
+  const canvas = container.querySelector("canvas");
+  const img = container.querySelector("img");
+  const link = document.createElement("a");
+  let blobUrl = null;
+
+  if (canvas) {
+    link.href = canvas.toDataURL("image/png");
+    link.download = filename;
+  } else if (img) {
+    link.href = img.src;
+    link.download = filename;
+  } else if (lastScanProfPayload) {
+    const blob = new Blob([lastScanProfPayload], { type: "application/json" });
+    blobUrl = URL.createObjectURL(blob);
+    link.href = blobUrl;
+    link.download = filename.replace(/\.png$/i, ".json");
+  } else {
+    alert("Aucun QR ou données disponibles.");
+    return;
+  }
+
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  if (blobUrl) {
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 0);
+  }
+}
+
+function openQrModal() {
+  if (!qrModal) return;
+  qrModal.classList.remove("hidden");
+  qrModal.setAttribute("aria-hidden", "false");
+  setTimeout(() => {
+    if (downloadQrBtn) downloadQrBtn.focus();
+  }, 80);
+}
+
+function closeQrModal() {
+  if (!qrModal) return;
+  qrModal.classList.add("hidden");
+  qrModal.setAttribute("aria-hidden", "true");
 }
 
 if (downloadQrBtn) {
   downloadQrBtn.addEventListener("click", () => {
-    // 🔍 La lib peut générer <canvas> OU <img>
-    const canvas = qrBoxEl.querySelector("canvas");
-    const img = qrBoxEl.querySelector("img");
-
-    if (!canvas && !img) {
-      alert("Le QR n'est pas encore généré.");
-      return;
-    }
-
-    const link = document.createElement("a");
-
-    if (canvas) {
-      link.href = canvas.toDataURL("image/png");
-    } else {
-      link.href = img.src;
-    }
-
-    link.download = `IrregularVerbs_QR_${studentIdentity.firstName || "ELEVE"}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const safeName = APP_NAME.replace(/\s+/g, "_");
+    downloadScanProfQR("qrBox", `${safeName}_QR.png`);
   });
+}
+
+if (closeQrModalBtn) {
+  closeQrModalBtn.addEventListener("click", closeQrModal);
 }
