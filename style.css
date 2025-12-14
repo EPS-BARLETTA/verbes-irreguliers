@@ -211,6 +211,18 @@ body.theme-light .secondary-btn {
   transform: translateY(-1px) scale(1.02);
 }
 
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+  margin: 18px 0 10px;
+}
+
+.result-actions button {
+  flex: 1 1 220px;
+}
+
 /* Difficulty & question buttons */
 
 .difficulty-buttons button,
@@ -368,10 +380,20 @@ body.theme-light .answer-btn {
   margin-top: 18px;
   padding-top: 10px;
   border-top: 1px dashed rgba(148, 163, 184, 0.7);
+  }
+
+#qrBox {
+  margin-top: 14px;
+  display: flex;
+  justify-content: center;
 }
 
-#qrBox canvas {
-  margin-top: 10px;
+#qrBox canvas,
+#qrBox img {
+  background: #ffffff;
+  padding: 14px;
+  border-radius: 16px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.25);
 }
 
 /* Duel visuals */
@@ -533,7 +555,67 @@ body.theme-light .duel-player-card {
 .modal-content {
   position: relative;
   z-index: 10000;
-  background: inherit;
+  width: min(420px, 90vw);
+  background: rgba(15, 23, 42, 0.95);
+  border-radius: 24px;
+  padding: 26px 22px;
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.45);
   pointer-events: auto;
 }
 
+body.theme-light .modal-content {
+  background: rgba(255, 255, 255, 0.98);
+  color: #0f172a;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content input,
+.modal-content select {
+  width: 100%;
+  padding: 10px 12px;
+  margin-top: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  font-size: 1rem;
+  background: rgba(15, 23, 42, 0.15);
+  color: inherit;
+}
+
+body.theme-light .modal-content input,
+body.theme-light .modal-content select {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.modal-content button {
+  width: 100%;
+  margin-top: 16px;
+}
+
+.modal-label {
+  display: block;
+  margin-top: 14px;
+  font-weight: 600;
+}
+
+.qr-modal {
+  width: min(480px, 94vw);
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 18px 30px rgba(0, 0, 0, 0.2);
+}
+
+.session-history {
+  margin-top: 20px;
+  text-align: left;
+  border-top: 1px dashed rgba(255, 255, 255, 0.15);
+  padding-top: 12px;
+  font-size: 0.95rem;
+}
+
+body.theme-light .session-history {
+  border-color: rgba(15, 23, 42, 0.2);
+}
+
+.session-history p {
+  margin: 4px 0;
+}
