@@ -127,16 +127,11 @@
     <div id="badge-row"></div>
     <div id="summary"></div>
     <div id="mistake-list"></div>
-
-    <div id="qr-section" class="qr-section hidden">
-      <h2>QR à montrer à ton professeur</h2>
-      <p class="subtitle small">
-        ⚠️ Ce QR contient <strong>toute la séance</strong>.  
-        Sans scan, les résultats seront perdus.
-      </p>
-      <div id="qrBox"></div>
-      <button id="download-qr-btn" class="secondary-btn">📥 Télécharger le QR</button>
+    <div class="result-actions">
+      <button id="result-continue-btn" class="primary-btn">⬅ Continuer un autre exercice</button>
+      <button id="result-finish-btn" class="secondary-btn">📥 Télécharger le QR (ScanProf)</button>
     </div>
+    <div id="session-history" class="session-history"></div>
 
     <button class="danger-btn" onclick="restart()">
       🆕 Nouvelle séance (⚠️ réinitialise tout)
@@ -144,16 +139,19 @@
   </div>
 
   <!-- MODALES -->
-  <div id="identity-modal" class="modal hidden">
+  <div id="identity-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop"></div>
     <div class="modal-content">
       <h2>Bienvenue 👋</h2>
       <input id="student-firstname" placeholder="Prénom">
+      <input id="student-lastname" placeholder="Nom (optionnel)">
       <input id="student-class" placeholder="Classe">
       <button onclick="saveIdentity()">Valider</button>
     </div>
   </div>
 
-  <div id="session-modal" class="modal hidden">
+  <div id="session-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop"></div>
     <div class="modal-content">
       <h2>Fin de l'exercice</h2>
       <p class="small">
@@ -166,6 +164,23 @@
     </div>
   </div>
 
+  <div id="qr-modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content qr-modal">
+      <div id="qr-section" class="qr-section">
+        <h2 id="qr-modal-title">QR ScanProf prêt à scanner</h2>
+        <p class="subtitle small">
+          ⚠️ Ce QR contient <strong>toute la séance</strong>.  
+          Scanne-le immédiatement avec l'app ScanProf ou sauvegarde-le en PNG.
+        </p>
+        <div id="qrBox"></div>
+        <button id="download-qr-btn" class="secondary-btn">💾 Enregistrer le QR en PNG</button>
+        <button id="close-qr-modal" class="danger-btn">Fermer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="verbs-data.js"></script>
   <script src="qrcode.min.js"></script>
   <script src="script.js"></script>
 </body>
